@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.yuban32.mapper.FolderMapper">
+    <resultMap id="FolderResultMap" type="com.yuban32.entity.Folder">
+        <id property="id" column="id"/>
+        <result property="username" column="username"/>
+        <result property="folderRelativePath" column="folder_relative_path"/>
+        <result property="folderUUID" column="folder_uuid"/>
+        <result property="folderName" column="folder_name"/>
+        <result property="parentFolderUUID" column="parent_folder_uuid"/>
+        <result property="folderCreateTime" column="folder_create_time"/>
+    </resultMap>
+    <insert id="createFolder">
+        insert into t_folder (username,folder_relative_path,folder_uuid,folder_name,parent_folder_uuid,folder_create_time)
+            values (#{username},#{folderRelativePath},#{folderUUID},#{folderName},#{parentFolderUUID},#{folderCreateTime});
+    </insert>
+    <update id="updateFolderByFolderUUID">
+        update
+            <set>
+                <if test="folderRelativePath != null and folderRelativePath != ''">
+                    folder_relative_path = #{folderRelativePath}
+                </if>
+                <if test="folderName != null and folderName != ''">
+                    folder_name = #{folderName}
+                </if>
+                <if test="parentFolderUUID != null and parentFolderUUID != ''">
+                    parent_folder_uuid = #{parentFolderUUID}
+                </if>
+            </set>
+                where folder_uuid = #{folderUUID};
+    </update>
+    <update id="removeFolderToRecycle">
+        update t_folder set folder_status = 0 where folder_uuid = #{currentFolderUUID} and username = #{userName};
+    </update>
+    <update id="removeChildrenFolderToRecycle">
+        update t_folder set folder_status = 0 where parent_folder_uuid = #{parentFolderUUID} and username = #{userName};
+    </update>
+    <update id="restoreFolder">
+        update t_folder set folder_status = 1 where folder_uuid = #{folderUUID} and username = #{userName};
+    </update>
+    <select id="selectFolderByFolderUUID" resultType="com.yuban32.entity.Folder">
+        select * from t_folder where folder_uuid = #{folderUUID};
+    </select>
+    <select id="selectFolderAllByUsernameAndParentFolderUUID" resultType="com.yuban32.entity.Folder">
+        select * from t_folder where username = #{username} and parent_folder_uuid = #{parentFolderUUID};
+    </select>
+    <select id="selectFolderByParentFolderUUIDAndNewFolderName" resultType="com.yuban32.entity.Folder">
+        select * from t_folder where parent_folder_uuid = #{parentFolderUUID} and folder_name = #{newFolderName};
+    </select>
+    <select id="selectFolderListByFolderNameAndParentFolderUUID" resultType="com.yuban32.entity.Folder">
+        select * from t_folder where folder_name = #{folderName} and parent_folder_uuid = #{parentFolderUUID};
+    </select>
+    <select id="selectFolderListByParentFolderUUID" resultType="com.yuban32.entity.Folder">
+        select * from t_folder where parent_folder_uuid = #{parentFolderUUID};
+    </select>
+    <select id="selectOneByFolderUUIDFolder" resultType="com.yuban32.entity.Folder">
+        select * from t_folder where folder_uuid = #{folderUUID};
+    </select>
+</mapper>

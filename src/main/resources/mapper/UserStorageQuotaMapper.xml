@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.yuban32.mapper.UserStorageQuotaMapper">
+    <insert id="initUserStorageQuotaByUUID">
+        insert into t_user_storage_quota (uuid) values(#{uuid});
+    </insert>
+
+    <select id="selectUserStorageQuotaByUserName" resultType="com.yuban32.entity.UserStorageQuota">
+        select t_storage.* from t_user as users,
+                              t_user_storage_quota as t_storage
+                where users.username = #{username,jdbcType=VARCHAR} and users.uuid = t_storage.uuid;
+    </select>
+</mapper>

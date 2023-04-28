@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.yuban32.mapper.FileInfoMapper">
+
+    <resultMap id="FileResult" type="com.yuban32.entity.FileInfo">
+        <id property="id" column="f_id"/>
+        <result property="fileMD5" column="f_md5"/>
+        <result property="fileName" column="f_name"/>
+        <result property="fileSize" column="f_size"/>
+        <result property="fileType" column="f_type"/>
+        <result property="fileParentId" column="f_parent_id"/>
+        <result property="fileAbsolutePath" column="f_absolute_path"/>
+        <result property="fileRelativePath" column="f_relative_path"/>
+        <result property="fileUploader" column="f_uploader"/>
+        <result property="fileUploadTime" column="f_upload_time"/>
+    </resultMap>
+
+    <insert id="insertFile">
+        insert into t_file(f_name,f_md5,f_size,f_type,f_parent_id,f_absolute_path,f_relative_path,f_uploader,f_upload_time)
+            values(#{fileName},#{fileMD5},#{fileSize},#{fileType},#{fileParentId},#{fileAbsolutePath},#{fileRelativePath},#{fileUploader},#{fileUploadTime});
+    </insert>
+    <update id="fileRenameByFileNameAnyFolderUUID">
+        update t_file set f_name = #{newFileName} where f_name=#{currentFileName} and f_parent_id = #{folderUUID};
+    </update>
+    <update id="removeFileToRecycle">
+        update t_file set f_status = 0 where f_name = #{fileName} and f_parent_id = #{currentFolderUUID} and f_uploader = #{userName};
+    </update>
+    <update id="removeChildrenFileToRecycle">
+        update t_file set f_status = 0 where f_parent_id = #{parentFolderUUID} and f_uploader = #{userName};
+    </update>
+    <update id="restoreFile">
+        update t_file set f_status = 1 where f_md5 = #{fileUUID} and f_uploader = #{userName};
+    </update>
+    <select id="selectFileByMd5" resultMap="FileResult">
+        select * from t_file where f_md5 = #{md5};
+    </select>
+    <select id="selectFileList" resultMap="FileResult">
+        select * from t_file order by f_upload_time desc;
+    </select>
+    <delete id="deleteFile">
+        delete from contact where ct_id = #{contactId};
+    </delete>
+</mapper>

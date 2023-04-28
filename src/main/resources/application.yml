@@ -1,0 +1,82 @@
+spring:
+  datasource:
+    # 连接池类型
+    type: com.alibaba.druid.pool.DruidDataSource
+    # Mysql数据库驱动
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://43.129.76.216:3306/Yuban_Drive?allowPublicKeyRetrieval=true&useSSL=false
+    username: Yuban_Drive
+    password: 3DDdsB33ZK5WzjA4
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+
+
+  # 热部署模块
+  devtools:
+    restart:
+      enabled: true
+  servlet:
+    multipart:
+      enabled: true #是否支持multipart上传文件
+      file-size-threshold: 0 #支持文件写入磁盘
+      max-request-size: -1 #最大支持请求大小
+      max-file-size: -1 #最大支持文件大小
+      resolve-lazily: false #是否支持multipart 文件上传时懒加载
+  jackson:
+    parser:
+      allow-unquoted-control-chars: true
+#配置SpringBoot Redis的
+  redis:
+    host: 43.129.76.216
+    port: 6379
+
+
+#配置Shiro-redis插件的
+shiro-redis:
+  enabled: true
+  redis-manager:
+    host: 43.129.76.216:6379
+
+mybatis-plus:
+  global-config:
+    db-config:
+      column-underline: true
+      db-type: mysql
+      id-type: auto
+      table-prefix: t_
+      # 逻辑删除配置 0已删除 1未删除
+      logic-delete-value: 0
+      logic-not-delete-value: 1
+    # 配置mapper扫描 找到所有mapper.xml映射文件
+    mapper-locations: classpath*:mapper/*.xml
+    type-aliases-package: com.yuban32.entity
+    # 加载全局配置文件
+    config-locations: classpath*:mybatis-config.xml
+    configuration:
+      log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+# 上传文件的存储路径 项目的根目录下的files文件夹内  实际上在files后还要再拼接上用户名
+base-file-path:
+  file-path: ./files
+  temp-file-path: ./temp_file_path
+  user-upload-file-path: userUpload
+  user-profile-path: userProfile
+server:
+  port: 5000
+  tomcat:
+    connection-timeout: 600000
+    threads:
+      max: 900
+    accept-count: 1000
+  servlet:
+    context-path: /
+Shiro:
+  Roles:
+    admin: admin
+    user: user
+yuban32:
+  jwt:
+#    jwt有效期为2天
+    expire: 172800000
+    secret: ^Z#$UH9%xjGUzEq8Zmd&Z24gDgNurbsemDS

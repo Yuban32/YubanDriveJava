@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.yuban32.mapper.ChunkMapper">
+
+    <resultMap type="com.yuban32.entity.ChunkInfo" id="ChunkResult">
+        <id property="id" column="c_id"></id>
+        <result property="chunkMD5" column="c_md5" />
+        <result property="chunkIndex" column="c_index"/>
+        <result property="chunkLocation" column="c_location"/>
+    </resultMap>
+
+    <insert id="insertChunk">
+        insert into t_chunk(c_md5,c_index)
+            values (#{chunkMD5},#{chunkIndex});
+    </insert>
+    <delete id="deleteChunkByMd5">
+        delete from t_chunk where c_md5 = #{chunkMD5};
+    </delete>
+    <select id="selectChunkListByMd5" resultMap="ChunkResult">
+        select * from t_chunk where c_md5 = #{chunkMD5};
+    </select>
+</mapper>
