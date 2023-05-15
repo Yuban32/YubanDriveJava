@@ -1,6 +1,7 @@
 package com.yuban32.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.yuban32.dto.FolderRenameDTO;
 import com.yuban32.entity.FileInfo;
 import com.yuban32.entity.Folder;
 import com.yuban32.mapper.FolderMapper;

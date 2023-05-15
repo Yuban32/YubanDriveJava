@@ -23,4 +23,5 @@ public interface FolderMapper extends BaseMapper<Folder> {
     Boolean removeFolderToRecycle(String currentFolderUUID , String userName);
     Boolean removeChildrenFolderToRecycle(String parentFolderUUID , String userName);
     Boolean restoreFolder(String folderUUID , String userName);
+    Boolean folderRename(String currentFolderUUID , String folderName , String userName);
 }

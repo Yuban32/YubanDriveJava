@@ -1,6 +1,7 @@
 package com.yuban32.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.yuban32.dto.FileRenameDTO;
 import com.yuban32.entity.FileInfo;
 import com.yuban32.entity.User;
 import org.apache.ibatis.annotations.Mapper;
@@ -19,7 +20,7 @@ public interface FileInfoMapper extends BaseMapper<FileInfo> {
     List<FileInfo> selectFileByMd5(String md5);
 
     List<FileInfo> selectFileList();
-    Boolean fileRenameByFileNameAnyFolderUUID(String newFileName ,String currentFileName,String folderUUID);
+    Boolean fileRenameByFileNameAnyFolderUUID(FileRenameDTO fileRenameDTO);
 
     Boolean removeFileToRecycle(String currentFolderUUID,String fileName,String userName);
     Boolean removeChildrenFileToRecycle(String parentFolderUUID,String userName);

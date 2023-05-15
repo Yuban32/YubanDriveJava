@@ -55,6 +55,7 @@ mybatis-plus:
     config-locations: classpath*:mybatis-config.xml
     configuration:
       log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+      sql-statement-log: true
 
 # 上传文件的存储路径 项目的根目录下的files文件夹内  实际上在files后还要再拼接上用户名
 base-file-path:
@@ -80,3 +81,7 @@ yuban32:
 #    jwt有效期为2天
     expire: 172800000
     secret: ^Z#$UH9%xjGUzEq8Zmd&Z24gDgNurbsemDS
+#logging:
+#  level:
+#    root: WARN
+#    com.baomidou: TRACE

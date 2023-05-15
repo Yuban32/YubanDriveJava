@@ -1,6 +1,7 @@
 package com.yuban32.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.yuban32.dto.FileRenameDTO;
 import com.yuban32.entity.FileInfo;
 
 import java.util.List;
@@ -14,8 +15,8 @@ public interface FileInfoService extends IService<FileInfo> {
     Integer addFile(FileInfo fileInfo);
     Boolean selectFileByMd5(String md5);
     List<FileInfo> selectFileList();
-    Boolean fileRenameByFileNameAnyFolderUUID(String newFileName ,String currentFileName,String folderUUID);
+    Boolean fileRenameByFileNameAnyFolderUUID(FileRenameDTO fileRenameDTO);
 
-    void createThumbnail(String resultFileName,String username ,String md5);
+    void createThumbnail(String resultFileName, String username , String md5);
 
 }

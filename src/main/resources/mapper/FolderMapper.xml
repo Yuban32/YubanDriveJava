@@ -38,6 +38,9 @@
     <update id="restoreFolder">
         update t_folder set folder_status = 1 where folder_uuid = #{folderUUID} and username = #{userName};
     </update>
+    <update id="folderRename">
+        update t_folder set folder_name = #{folderName} where folder_uuid = #{currentFolderUUID} and username = #{userName};
+    </update>
     <select id="selectFolderByFolderUUID" resultType="com.yuban32.entity.Folder">
         select * from t_folder where folder_uuid = #{folderUUID};
     </select>

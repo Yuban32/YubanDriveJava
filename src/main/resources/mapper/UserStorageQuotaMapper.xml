@@ -4,6 +4,9 @@
     <insert id="initUserStorageQuotaByUUID">
         insert into t_user_storage_quota (uuid) values(#{uuid});
     </insert>
+    <update id="userTotalStorageEdit">
+        update t_user_storage_quota set total_storage = #{totalStorage} where uuid = #{uuid};
+    </update>
 
     <select id="selectUserStorageQuotaByUserName" resultType="com.yuban32.entity.UserStorageQuota">
         select t_storage.* from t_user as users,

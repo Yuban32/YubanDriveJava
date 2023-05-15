@@ -1,8 +1,10 @@
 package com.yuban32.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.yuban32.dto.FolderRenameDTO;
 import com.yuban32.entity.FileInfo;
 import com.yuban32.entity.Folder;
+import com.yuban32.mapper.FolderMapper;
 import com.yuban32.response.Result;
 import com.yuban32.service.FolderService;
 import com.yuban32.util.JWTUtils;
@@ -10,6 +12,7 @@ import com.yuban32.vo.FileAndFolderVO;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.shiro.authz.annotation.RequiresAuthentication;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
@@ -31,6 +34,8 @@ public class FolderController {
     private FolderService folderService;
     @Autowired
     private JWTUtils jwtUtils;
+    @Autowired
+    private FolderMapper folderMapper;
     @PostMapping("/create")
 //    @RequiresAuthentication
     public Result createFolder(
@@ -67,15 +72,27 @@ public class FolderController {
         }
     }
     @PostMapping("/rename")
-    public Result folderRename(@RequestParam("currentFolderUUID")String currentFolderUUID,
-                               @RequestParam("newFolderName")String newFolderName,
-                               HttpServletRequest request){
+    public Result folderRename(@Validated @RequestBody FolderRenameDTO renameDTO , HttpServletRequest request){
         String userName = jwtUtils.getClaimByToken(request.getHeader("Authorization")).getSubject();
-        Folder one = folderService.getOne(new QueryWrapper<Folder>().eq("folder_uuid", currentFolderUUID).eq("username", userName));
-        if(one == null){
-            return new Result(205,"没有查询到文件名",null);
-        }
-        return new Result(205,"没有查询到文件名",null);
-    }
 
+        Boolean folderRename = folderMapper.folderRename(renameDTO.getCurrentFolderUUID(), renameDTO.getFolderName(), userName);
+        log.info("{},{}",renameDTO,folderRename);
+        if (folderRename){
+            Folder folder = folderMapper.selectOne(new QueryWrapper<Folder>().eq("folder_uuid", renameDTO.getCurrentFolderUUID()).eq("username", userName));
+            FileAndFolderVO temp = new FileAndFolderVO();
+            temp.setType("folder");
+            temp.setCategory(null);
+            temp.setName(folder.getFolderName());
+            temp.setFileUUID(folder.getFolderUUID());
+            temp.setParentFileUUID(folder.getParentFolderUUID());
+            temp.setSize(null);
+            temp.setUploader(folder.getUsername());
+            temp.setCreatedTime(folder.getFolderCreateTime());
+            temp.setRelativePath(folder.getFolderRelativePath());
+            return new Result(200,"文件重命名成功",temp);
+        }else {
+            return new Result(205,"文件重命名失败,请检查参数是否正确",null);
+        }
+
+    }
 }

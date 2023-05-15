@@ -20,7 +20,7 @@
             values(#{fileName},#{fileMD5},#{fileSize},#{fileType},#{fileParentId},#{fileAbsolutePath},#{fileRelativePath},#{fileUploader},#{fileUploadTime});
     </insert>
     <update id="fileRenameByFileNameAnyFolderUUID">
-        update t_file set f_name = #{newFileName} where f_name=#{currentFileName} and f_parent_id = #{folderUUID};
+        update t_file set f_name = #{targetFileName} where f_name=#{currentFileName} and f_parent_id = #{folderUUID} and f_uploader = #{userName};
     </update>
     <update id="removeFileToRecycle">
         update t_file set f_status = 0 where f_name = #{fileName} and f_parent_id = #{currentFolderUUID} and f_uploader = #{userName};

@@ -9,4 +9,13 @@
     <update id="updateLastLoginTimeByID">
         update t_user set last_login=#{lastLogin} where id = #{id}
     </update>
+    <update id="userEdit">
+        update t_user
+                <set>
+                    <if test="userName !=null">username = #{userName}</if>
+                    <if test="password != null">password = #{password}</if>
+
+                </set>
+                where id = #{id};
+    </update>
 </mapper>

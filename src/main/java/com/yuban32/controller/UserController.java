@@ -12,13 +12,12 @@ import com.yuban32.service.UserService;
 import com.yuban32.util.JWTUtils;
 import com.yuban32.util.LocalDateTimeFormatterUtils;
 import com.yuban32.util.UserControllerUtils;
-import com.yuban32.vo.LoginVO;
+import com.yuban32.vo.UserVO;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authz.annotation.RequiresAuthentication;
 import org.apache.shiro.authz.annotation.RequiresRoles;
 import org.apache.shiro.crypto.hash.SimpleHash;
-import org.apache.shiro.subject.Subject;
 import org.apache.shiro.util.ByteSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -85,7 +84,7 @@ public class UserController {
 
     @PostMapping("/login")
     public Result login(@Validated @RequestBody LoginDto loginDto ,HttpServletResponse response){
-        LoginVO loginVO = new LoginVO();
+        UserVO userVO = new UserVO();
         //获取subject对象
         User existsUser = userService.getOne(new QueryWrapper<User>().eq("username", loginDto.getUsername()));
         if(existsUser == null){
@@ -103,17 +102,17 @@ public class UserController {
         LocalDateTimeFormatterUtils localDateTimeFormatterUtils = new LocalDateTimeFormatterUtils();
         updateUserLoginTime.setLastLogin(localDateTimeFormatterUtils.getStartDateTime());
         userService.updateLastLoginTimeByID(updateUserLoginTime);
-        loginVO.setId(existsUser.getId());
-        loginVO.setUsername(existsUser.getUsername());
-        loginVO.setAvatar(existsUser.getAvatar());
-        loginVO.setEmail(existsUser.getEmail());
-        loginVO.setUsedStorage(GBFormat(userStorageQuota.getUsedStorage()));
-        loginVO.setTotalStorage(GBFormat(userStorageQuota.getTotalStorage()));
-        loginVO.setRoles(existsUser.getRole());
+        userVO.setId(existsUser.getId());
+        userVO.setUsername(existsUser.getUsername());
+        userVO.setAvatar(existsUser.getAvatar());
+        userVO.setEmail(existsUser.getEmail());
+        userVO.setUsedStorage(userStorageQuota.getUsedStorage());
+        userVO.setTotalStorage(userStorageQuota.getTotalStorage());
+        userVO.setRole(existsUser.getRole());
         String jwt = jwtUtils.generateToken(existsUser.getUsername());
         response.setHeader("Authorization",jwt);
         response.setHeader("Access-Control-Expose-Headers","Authorization");
-        return Result.success("登录成功",loginVO);
+        return Result.success("登录成功", userVO);
     }
     /***
      * @description 注册控制类
@@ -169,35 +168,38 @@ public class UserController {
         }
         User users = userService.getOne(new QueryWrapper<User>().eq("username", userName));
         UserStorageQuota userStorageQuota = userStorageQuotaMapper.selectUserStorageQuotaByUserName(userName);
-        LoginVO loginVO = new LoginVO();
-        loginVO.setId(users.getId());
-        loginVO.setUsername(users.getUsername());
-        loginVO.setAvatar(users.getAvatar());
-        loginVO.setEmail(users.getEmail());
-        loginVO.setTotalStorage(userStorageQuota.getTotalStorage());
-        loginVO.setUsedStorage(userStorageQuota.getUsedStorage());
-        loginVO.setRoles(users.getRole());
-        return Result.success("查询成功",loginVO);
+        UserVO userVO = new UserVO();
+        userVO.setId(users.getId());
+        userVO.setUsername(users.getUsername());
+        userVO.setAvatar(users.getAvatar());
+        userVO.setEmail(users.getEmail());
+        userVO.setTotalStorage(userStorageQuota.getTotalStorage());
+        userVO.setUsedStorage(userStorageQuota.getUsedStorage());
+        userVO.setRole(users.getRole());
+        return Result.success("查询成功", userVO);
     }
     @GetMapping("/userList")
     public Result getUserList(HttpServletRequest httpServletRequest){
-        ArrayList<LoginVO> loginVOS = new ArrayList<>();
+        ArrayList<UserVO> userVOS = new ArrayList<>();
         List<User> list = userService.list();
 
         if(!list.isEmpty()){
             for (User user : list) {
                 UserStorageQuota userStorageQuotas = userStorageQuotaMapper.selectOne(new QueryWrapper<UserStorageQuota>().eq("uuid", user.getUuid()));
-                LoginVO temp = new LoginVO();
-                temp.setId(user.getId());
-                temp.setUsedStorage(userStorageQuotas.getUsedStorage());
-                temp.setTotalStorage(userStorageQuotas.getTotalStorage());
-                temp.setAvatar(user.getAvatar());
-                temp.setRoles(user.getRole());
-                temp.setUsername(user.getUsername());
-                temp.setEmail(user.getEmail());
-                loginVOS.add(temp);
+                log.info("{}",userStorageQuotas);
+                if(userStorageQuotas!=null){
+                    UserVO temp = new UserVO();
+                    temp.setId(user.getId());
+                    temp.setUsedStorage(userStorageQuotas.getUsedStorage());
+                    temp.setTotalStorage(userStorageQuotas.getTotalStorage());
+                    temp.setAvatar(user.getAvatar());
+                    temp.setRole(user.getRole());
+                    temp.setUsername(user.getUsername());
+                    temp.setEmail(user.getEmail());
+                    userVOS.add(temp);
+                }
             }
-            return Result.success("查询成功",loginVOS);
+            return Result.success("查询成功", userVOS);
         }
         return Result.error("查询失败,无数据",null);
     }
@@ -215,8 +217,5 @@ public class UserController {
         LocalDateTimeFormatterUtils localDateTimeFormatterUtils = new LocalDateTimeFormatterUtils();
         tempUser.setCreated(localDateTimeFormatterUtils.getStartDateTime());
         return tempUser;
-    }
-    public double GBFormat(double bytes){
-        return bytes / 1024 /1024 /1024;
     }
 }

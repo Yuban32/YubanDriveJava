@@ -14,4 +14,5 @@ import org.apache.ibatis.annotations.Mapper;
 public interface UserStorageQuotaMapper extends BaseMapper<UserStorageQuota> {
     UserStorageQuota selectUserStorageQuotaByUserName(String username);
     int initUserStorageQuotaByUUID(UserStorageQuota userStorageQuota);
+    boolean userTotalStorageEdit(double totalStorage ,String uuid);
 }

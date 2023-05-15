@@ -1,6 +1,7 @@
 package com.yuban32.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.yuban32.dto.UserEditDTO;
 import com.yuban32.entity.User;
 
 /**
@@ -11,4 +12,5 @@ import com.yuban32.entity.User;
  */
 public interface UserService extends IService<User> {
     int updateLastLoginTimeByID(User user);
+    boolean userEdit(UserEditDTO userEditDTO);
 }

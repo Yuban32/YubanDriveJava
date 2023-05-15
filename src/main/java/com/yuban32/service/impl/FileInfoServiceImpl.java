@@ -1,6 +1,7 @@
 package com.yuban32.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.yuban32.dto.FileRenameDTO;
 import com.yuban32.entity.FileInfo;
 import com.yuban32.mapper.FileInfoMapper;
 import com.yuban32.service.FileInfoService;
@@ -15,7 +16,6 @@ import org.springframework.stereotype.Service;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -57,8 +57,8 @@ public class FileInfoServiceImpl extends ServiceImpl<FileInfoMapper, FileInfo> i
 
 
     @Override
-    public Boolean fileRenameByFileNameAnyFolderUUID(String newFileName, String currentFileName, String folderUUID) {
-        return fileInfoMapper.fileRenameByFileNameAnyFolderUUID(newFileName, currentFileName, folderUUID);
+    public Boolean fileRenameByFileNameAnyFolderUUID(FileRenameDTO fileRenameDTO) {
+        return fileInfoMapper.fileRenameByFileNameAnyFolderUUID(fileRenameDTO);
     }
 
     @SneakyThrows

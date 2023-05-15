@@ -2,6 +2,7 @@ package com.yuban32.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.yuban32.dto.FileRenameDTO;
 import com.yuban32.entity.FileInfo;
 import com.yuban32.entity.Folder;
 import com.yuban32.response.Result;
@@ -14,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.shiro.authz.annotation.RequiresAuthentication;
 import org.apache.tika.Tika;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
@@ -85,15 +87,18 @@ public class FileManagementController {
 
     @PostMapping("/rename")
 //    @RequiresAuthentication
-    public Result fileRename(@RequestParam("newFileName")String newFileName,
-                             @RequestParam("currentFileName")String currentFileName,
-                             @RequestParam("folderUUID")String folderUUID){
-        Boolean isSuccess = fileInfoService.fileRenameByFileNameAnyFolderUUID(newFileName, currentFileName, folderUUID);
+    public Result fileRename(@Validated @RequestBody FileRenameDTO fileRenameDTO , HttpServletRequest request){
+        String username = jwtUtils.getClaimByToken(request.getHeader("Authorization")).getSubject();
+        fileRenameDTO.setUserName(username);
+        Boolean isSuccess = fileInfoService.fileRenameByFileNameAnyFolderUUID(fileRenameDTO);
         if(isSuccess){
-            FileInfo one = fileInfoService.getOne(new QueryWrapper<FileInfo>().eq("f_name", newFileName).eq("f_parent_id", folderUUID));
-            return new Result(200,"修改文件名成功",one);
+            FileInfo one = fileInfoService.getOne(new QueryWrapper<FileInfo>().eq("f_name", fileRenameDTO.getTargetFileName()).eq("f_parent_id", fileRenameDTO.getFolderUUID()).eq("f_uploader",username));
+            FileAndFolderVO temp = new FileAndFolderVO();
+            temp.setName(one.getFileName());
+            temp.setFileUUID(one.getFileMD5());
+            return new Result(200,"文件重命名成功",temp);
         }else {
-            return Result.error("修改文件名失败");
+            return new Result(205,"文件重命名失败",null);
         }
     }
 
