@@ -1,8 +1,10 @@
 package com.yuban32.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.yuban32.dto.LoginDto;
 import com.yuban32.dto.RegisterDTO;
+import com.yuban32.dto.UserEditDTO;
 import com.yuban32.entity.User;
 import com.yuban32.entity.UserStorageQuota;
 import com.yuban32.mapper.UserStorageQuotaMapper;
@@ -106,6 +108,7 @@ public class UserController {
         userVO.setUsername(existsUser.getUsername());
         userVO.setAvatar(existsUser.getAvatar());
         userVO.setEmail(existsUser.getEmail());
+        userVO.setStatus(existsUser.getStatus());
         userVO.setUsedStorage(userStorageQuota.getUsedStorage());
         userVO.setTotalStorage(userStorageQuota.getTotalStorage());
         userVO.setRole(existsUser.getRole());
@@ -173,35 +176,51 @@ public class UserController {
         userVO.setUsername(users.getUsername());
         userVO.setAvatar(users.getAvatar());
         userVO.setEmail(users.getEmail());
+        userVO.setStatus(users.getStatus());
         userVO.setTotalStorage(userStorageQuota.getTotalStorage());
         userVO.setUsedStorage(userStorageQuota.getUsedStorage());
         userVO.setRole(users.getRole());
         return Result.success("查询成功", userVO);
     }
-    @GetMapping("/userList")
-    public Result getUserList(HttpServletRequest httpServletRequest){
-        ArrayList<UserVO> userVOS = new ArrayList<>();
-        List<User> list = userService.list();
-
-        if(!list.isEmpty()){
-            for (User user : list) {
-                UserStorageQuota userStorageQuotas = userStorageQuotaMapper.selectOne(new QueryWrapper<UserStorageQuota>().eq("uuid", user.getUuid()));
-                log.info("{}",userStorageQuotas);
-                if(userStorageQuotas!=null){
-                    UserVO temp = new UserVO();
-                    temp.setId(user.getId());
-                    temp.setUsedStorage(userStorageQuotas.getUsedStorage());
-                    temp.setTotalStorage(userStorageQuotas.getTotalStorage());
-                    temp.setAvatar(user.getAvatar());
-                    temp.setRole(user.getRole());
-                    temp.setUsername(user.getUsername());
-                    temp.setEmail(user.getEmail());
-                    userVOS.add(temp);
-                }
-            }
-            return Result.success("查询成功", userVOS);
+    //用户编辑
+    @PostMapping("/edit")
+    public Result userEdit(@Validated @RequestBody UserEditDTO userEditDTO){
+        log.info("userEdit=>{}",userEditDTO);
+        UpdateWrapper<User> updateWrapper = new UpdateWrapper<>();
+        if (!userEditDTO.getPassword().isEmpty()){
+            //加密加盐
+            User getUUID = userService.getOne(new QueryWrapper<User>().eq("id",userEditDTO.getId()));
+            String encryptionPassword = new UserControllerUtils().encryptionPassword(getUUID.getUuid(),userEditDTO.getPassword());
+            updateWrapper.set("password", encryptionPassword);
         }
-        return Result.error("查询失败,无数据",null);
+
+        if (!userEditDTO.getEmail().isEmpty()){
+            updateWrapper.set("email", userEditDTO.getEmail());
+        }
+        if(!userEditDTO.getAvatar().isEmpty()){
+            updateWrapper.set("avatar", userEditDTO.getAvatar());
+        }
+        if(!userEditDTO.getUsername().isEmpty()){
+            updateWrapper.set("username", userEditDTO.getUsername());
+        }
+        boolean success = userService.update(updateWrapper);
+        if(success){
+            User existUser = userService.getOne(new QueryWrapper<User>().eq("id", userEditDTO.getId()));
+            UserStorageQuota userStorageQuota = userStorageQuotaMapper.selectOne(new QueryWrapper<UserStorageQuota>().eq("uuid", existUser.getUuid()));
+            UserVO userVO = new UserVO();
+            userVO.setId(existUser.getId());
+            userVO.setUsername(existUser.getUsername());
+            userVO.setAvatar(existUser.getAvatar());
+            userVO.setEmail(existUser.getEmail());
+            userVO.setStatus(userVO.getStatus());
+            userVO.setTotalStorage(userStorageQuota.getTotalStorage());
+            userVO.setUsedStorage(userStorageQuota.getUsedStorage());
+            userVO.setRole(existUser.getRole());
+
+            return Result.success("信息修改成功",userVO);
+        }else {
+            return Result.error("修改失败");
+        }
     }
     public User userRegisterUtil(String uuid,String username,String password,String avatar,String email,String roles){
         //此工具类包含了雪花算法和加密加盐的操作

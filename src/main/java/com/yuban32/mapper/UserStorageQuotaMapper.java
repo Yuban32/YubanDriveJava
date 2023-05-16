@@ -15,4 +15,5 @@ public interface UserStorageQuotaMapper extends BaseMapper<UserStorageQuota> {
     UserStorageQuota selectUserStorageQuotaByUserName(String username);
     int initUserStorageQuotaByUUID(UserStorageQuota userStorageQuota);
     boolean userTotalStorageEdit(double totalStorage ,String uuid);
+    boolean updateUsedStorageByUsername(double usedStorage,String username);
 }
