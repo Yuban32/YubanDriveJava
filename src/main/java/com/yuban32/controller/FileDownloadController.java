@@ -5,17 +5,11 @@ import com.yuban32.entity.FileInfo;
 import com.yuban32.response.Result;
 import com.yuban32.service.ChunkInfoService;
 import com.yuban32.service.FileInfoService;
-import com.yuban32.util.FilePathUtils;
 import com.yuban32.util.JWTUtils;
 import com.yuban32.vo.FileAndFolderVO;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.shiro.authz.annotation.RequiresAuthentication;
 import org.apache.tika.Tika;
-import org.apache.tika.detect.TypeDetector;
-import org.apache.tika.metadata.Metadata;
-import org.apache.tika.mime.MediaType;
-import org.apache.tika.parser.AutoDetectParser;
-import org.apache.tika.parser.Parser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
@@ -24,8 +18,6 @@ import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -55,16 +47,19 @@ public class FileDownloadController {
 
 
     @GetMapping("/fileList")
-//    @RequiresAuthentication
+    @RequiresAuthentication
     public Result getFileListByUserNameAndParentFolderUUID(@RequestParam("parentFolderUUID")String parentFolderUUID,HttpServletRequest request) throws IOException {
         log.info("查询文件");
         String username = jwtUtils.getClaimByToken(request.getHeader("Authorization")).getSubject();
+        if(parentFolderUUID.equals("root")){
+            parentFolderUUID=username;
+        }
         List<FileInfo> fileList = fileInfoService.list(new QueryWrapper<FileInfo>().eq("f_uploader",username).eq("f_parent_id",parentFolderUUID).eq("f_status",1));
         List<FileAndFolderVO> fileAndFolderVO = new ArrayList<>();
         String domain = request.getServerName();
         int port = request.getServerPort();
         //拼接缩略图
-        String imagePathURL = domain + ":" + port + "/download/" + username + "/userUpload/";
+        String imagePathURL = domain + ":" + port + "/images/";
         String thumbnailUrl = imagePathURL + "Thumbnail/Thumbnail";
         if (fileList.isEmpty()){
             return new Result(205,"没有查到文件",null);
@@ -79,15 +74,15 @@ public class FileDownloadController {
                 temp.setUploader(fileInfo.getFileUploader());
                 temp.setCreatedTime(fileInfo.getFileUploadTime());
                 temp.setRelativePath(fileInfo.getFileRelativePath());
-
-                File checkFileType = new File(fileInfo.getFileAbsolutePath() + File.separator + fileInfo.getFileMD5() + "." + fileInfo.getFileType());
+                temp.setFileExtension(fileInfo.getFileExtension());
+                File checkFileType = new File(fileInfo.getFileAbsolutePath() + File.separator + fileInfo.getFileMD5() + "." + fileInfo.getFileExtension());
                 Tika tika = new Tika();
                 String detect = tika.detect(checkFileType);
                 String[] fileType = detect.split("/");
                 temp.setCategory(detect);
                 if(fileType[0].equals("image")){
-                    temp.setThumbnailURL(thumbnailUrl+ fileInfo.getFileMD5() + "." + fileInfo.getFileType());
-                    temp.setFullSizeImageURL(imagePathURL + fileInfo.getFileMD5() + "." + fileInfo.getFileType());
+                    temp.setThumbnailURL(thumbnailUrl+ fileInfo.getFileMD5() + "." + fileInfo.getFileExtension());
+                    temp.setFullSizeImageURL(imagePathURL + fileInfo.getFileMD5() + "." + fileInfo.getFileExtension());
 
                 }
 
@@ -97,7 +92,7 @@ public class FileDownloadController {
         }
     }
     @PostMapping("/file")
-//    @RequiresAuthentication
+    @RequiresAuthentication
     public void download(@RequestParam("md5") String md5,
                          @RequestParam("fileName") String fileName,
                          @RequestParam("chunkSize") Integer chunkSize,
@@ -110,8 +105,9 @@ public class FileDownloadController {
         String[] split = fileName.split("\\.");
         String type = split[split.length-1];
         //判断前端是否传来完整的文件路径 如果没传的话就默认在用户文件夹下 否则就按照前端传来的存储
-        String resultFileName = filePath + File.separator +userName + File.separator + userUploadFilePath + File.separator + md5 + "." + type;
-
+        //此方案有BUG 不能按照用户名分类存储
+//        String resultFileName = filePath + File.separator +userName + File.separator + userUploadFilePath + File.separator + md5 + "." + type;
+        String resultFileName = filePath + File.separator  + md5 + "." + type;
         File resultFile = new File(resultFileName);
         if (!resultFile.exists()){
             new Throwable("");

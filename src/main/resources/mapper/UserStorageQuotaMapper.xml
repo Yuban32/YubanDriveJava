@@ -7,6 +7,12 @@
     <update id="userTotalStorageEdit">
         update t_user_storage_quota set total_storage = #{totalStorage} where uuid = #{uuid};
     </update>
+    <update id="updateUsedStorageByUsername">
+        update t_user_storage_quota
+        set used_storage=#{usedStorage}
+        WHERE
+        uuid=(select users.uuid from t_user as users WHERE users.username=#{username});
+    </update>
 
     <select id="selectUserStorageQuotaByUserName" resultType="com.yuban32.entity.UserStorageQuota">
         select t_storage.* from t_user as users,

@@ -1,7 +1,7 @@
 package com.yuban32.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.yuban32.dto.UserEditDTO;
+import com.yuban32.dto.AdminUserEditDTO;
 import com.yuban32.entity.User;
 import com.yuban32.mapper.UserMapper;
 import com.yuban32.service.UserService;
@@ -27,7 +27,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     @Override
-    public boolean userEdit(UserEditDTO userEditDTO) {
+    public boolean userEdit(AdminUserEditDTO userEditDTO) {
         log.info("{}",userEditDTO);
         return userMapper.userEdit(userEditDTO);
     }

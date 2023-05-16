@@ -16,8 +16,8 @@
     </resultMap>
 
     <insert id="insertFile">
-        insert into t_file(f_name,f_md5,f_size,f_type,f_parent_id,f_absolute_path,f_relative_path,f_uploader,f_upload_time)
-            values(#{fileName},#{fileMD5},#{fileSize},#{fileType},#{fileParentId},#{fileAbsolutePath},#{fileRelativePath},#{fileUploader},#{fileUploadTime});
+        insert into t_file(f_name,f_md5,f_size,f_type,f_extension,f_parent_id,f_absolute_path,f_relative_path,f_uploader,f_upload_time)
+            values(#{fileName},#{fileMD5},#{fileSize},#{fileType},#{fileExtension},#{fileParentId},#{fileAbsolutePath},#{fileRelativePath},#{fileUploader},#{fileUploadTime});
     </insert>
     <update id="fileRenameByFileNameAnyFolderUUID">
         update t_file set f_name = #{targetFileName} where f_name=#{currentFileName} and f_parent_id = #{folderUUID} and f_uploader = #{userName};

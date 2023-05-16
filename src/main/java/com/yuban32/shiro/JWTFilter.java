@@ -65,7 +65,7 @@ public class JWTFilter extends AuthenticatingFilter {
             return true;
         }
         Claims claim = jwtUtils.getClaimByToken(token);
-        System.out.println(claim);
+
         if(claim != null){
             String blackListTokenByUsername = blackListTokenService.isBlackListTokenByUsername(claim.getSubject());
             if(token.equals(blackListTokenByUsername)){

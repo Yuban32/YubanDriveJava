@@ -39,11 +39,9 @@ public class ChunkInfoServiceImpl implements ChunkInfoService {
     private FolderService folderService;
     @Value("${base-file-path.file-path}")
     private String filePath;
-    @Value("${base-file-path.user-upload-file-path}")
-    private String userUploadFilePath;
     @Override
     public Integer saveChunk(MultipartFile chunk, String md5, Integer index, Long chunkSize, String resultFileName, String username) {
-        String directory = filePath + File.separator + username +File.separator + userUploadFilePath;
+        String directory = filePath + File.separator;
         if(!Files.isWritable(Paths.get(directory))){
             log.info("路径不存在,新建路径:{}",directory);
             try{

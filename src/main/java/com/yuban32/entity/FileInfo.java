@@ -32,6 +32,8 @@ public class FileInfo implements Serializable {
     private long fileSize;
     @TableField(value = "f_type")
     private String fileType;
+    @TableField(value = "f_extension")
+    private String fileExtension;
     @TableField(value = "f_parent_id")
     private String fileParentId;
     @TableField(value = "f_absolute_path")

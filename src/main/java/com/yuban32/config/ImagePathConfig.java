@@ -17,13 +17,11 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class ImagePathConfig implements WebMvcConfigurer {
     @Value("${base-file-path.file-path}")
     private String filePath;
-    @Value("${base-file-path.user-upload-file-path}")
-    private String userUploadFilePath;
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         log.info("加载图片访问资源配置");
 
-        registry.addResourceHandler("/download/**")
+        registry.addResourceHandler("/images/**")
                 .addResourceLocations("file:"+filePath+"/");
     }
 }

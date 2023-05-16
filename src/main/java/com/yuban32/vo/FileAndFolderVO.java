@@ -16,6 +16,8 @@ public class FileAndFolderVO {
     private String type;
     //file的类型 zip||exe
     private String category;
+    //文件后缀名 .zip
+    private String fileExtension;
     //文件名
     private String name;
     //文件的MD5||文件夹的UUID

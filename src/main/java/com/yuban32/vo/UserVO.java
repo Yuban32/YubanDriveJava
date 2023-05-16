@@ -15,6 +15,7 @@ public class UserVO {
     private String username;
     private String avatar;
     private String email;
+    private int status;
     private double totalStorage;
     private double usedStorage;
     private String role;

@@ -3,8 +3,10 @@ package com.yuban32.controller;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.yuban32.entity.FileInfo;
 import com.yuban32.entity.Folder;
+import com.yuban32.entity.UserStorageQuota;
 import com.yuban32.mapper.FileInfoMapper;
 import com.yuban32.mapper.FolderMapper;
+import com.yuban32.mapper.UserStorageQuotaMapper;
 import com.yuban32.response.Result;
 import com.yuban32.service.FileInfoService;
 import com.yuban32.service.FolderService;
@@ -43,6 +45,8 @@ public class RecycleController {
     private FileInfoService fileInfoService;
     @Autowired
     private FileInfoMapper fileInfoMapper;
+    @Autowired
+    private UserStorageQuotaMapper userStorageQuotaMapper;
     @Autowired
     private JWTUtils jwtUtils;
 
@@ -103,6 +107,7 @@ public class RecycleController {
                     temp.setUploader(fileInfo.getFileUploader());
                     temp.setCreatedTime(fileInfo.getFileUploadTime());
                     temp.setRelativePath(fileInfo.getFileRelativePath());
+                    temp.setFileExtension(fileInfo.getFileExtension());
                     File checkFileType = new File(fileInfo.getFileAbsolutePath() + File.separator + fileInfo.getFileMD5() + "." + fileInfo.getFileType());
                     Tika tika = new Tika();
                     String detect = tika.detect(checkFileType);
@@ -176,25 +181,30 @@ public class RecycleController {
      * @param request
      * @return Result
      **/
-    //TODO 完善删除后恢复用户空间
     @SneakyThrows
     @PostMapping("/trash")
     public Result permanentlyDelete(@RequestParam("fileUUID") String fileUUID, HttpServletRequest request) {
         String userName = jwtUtils.getClaimByToken(request.getHeader("Authorization")).getSubject();
         //处理文件
         List<FileInfo> fileInfoList = fileInfoService.list(new QueryWrapper<FileInfo>().eq("f_md5", fileUUID));
-        log.info("{}", fileInfoList);
         //如果数据库中查到当前文件存在多份的话  则只从数据库中删除当前文件 当数据库中只剩一份时 则执行IO删除操作
         //判断 先查询文件 当查询结果为空时 执行删除文件夹 不为空时 执行删除文件
         if (!fileInfoList.isEmpty()) {
+            //获取文件的大小
+            double fileSize = fileInfoList.get(0).getFileSize();
             boolean deleteFile = deleteFile(fileInfoList , false , null,null);
             if (deleteFile){
+                //先将用户已用的存储配额查询出来
+                //然后减去要删除文件的大小
+                //再更新到数据库中,完成恢复用户空间
+                UserStorageQuota userStorageQuota = userStorageQuotaMapper.selectUserStorageQuotaByUserName(userName);
+                userStorageQuotaMapper.updateUsedStorageByUsername(userStorageQuota.getUsedStorage() - fileSize, userName);
                 return new Result(200,"文件彻底删除成功",null);
             }else {
                 return new Result(205,"文件彻底删除失败",null);
             }
-
-        } else {
+        }
+        else {
             //执行删除文件夹
             QueryWrapper<FileInfo> childrenFileListQueryWrapper = new QueryWrapper<FileInfo>().eq("f_parent_id", fileUUID).eq("f_uploader", userName).eq("f_status", 0);
             QueryWrapper<Folder> childrenFolderListQueryWrapper = new QueryWrapper<Folder>().eq("parent_folder_uuid", fileUUID).eq("username", userName).eq("folder_status", 0);

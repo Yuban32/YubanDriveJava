@@ -6,16 +6,12 @@ import javax.validation.constraints.NotNull;
 
 /**
  * @author Yuban32
- * @ClassName UserEditDTO
+ * @ClassName AdminUserDeleteDTO
  * @Description
  * @Date 2023年05月16日
  */
 @Data
-public class UserEditDTO {
+public class AdminUserDeleteDTO {
     @NotNull(message = "用户ID不能为空")
-    private Long id;
-    private String username;
-    private String avatar;
-    private String password;
-    private String email;
+    private Integer userId;
 }

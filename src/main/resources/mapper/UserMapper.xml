@@ -12,7 +12,7 @@
     <update id="userEdit">
         update t_user
                 <set>
-                    <if test="userName !=null">username = #{userName}</if>
+                    <if test="userName !=null">username = #{username}</if>
                     <if test="password != null">password = #{password}</if>
 
                 </set>

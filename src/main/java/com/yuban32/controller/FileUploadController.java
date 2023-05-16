@@ -25,11 +25,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.util.UriUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -65,7 +67,7 @@ public class FileUploadController {
     private String filePath;
 
     @GetMapping("/check")
-//    @RequiresAuthentication
+    @RequiresAuthentication
     public Result checkFile(@RequestParam("md5") String md5,@RequestParam("folderUUID")String folderUUID,@RequestParam("fileName")String fileName , HttpServletRequest request){
         String userName;
         try{
@@ -106,6 +108,7 @@ public class FileUploadController {
                 if (folderUUID.equals(root)){
                     List<FileInfo> list = fileInfoService.list(fileInfoQueryByFileNameAndParentID);
                     if (list.isEmpty()){
+                        oneFile.setFileUploader(userName);
                         oneFile.setFileRelativePath(root);
                         oneFile.setFileParentId(root);
                         oneFile.setFileUploadTime(localDateTimeFormatterUtils.getStartDateTime());
@@ -116,8 +119,9 @@ public class FileUploadController {
                         return new Result(500,"本目录下已有同名文件",null);
                     }
                 }else if (oneFile.getFileRelativePath() != folderUUID) {
-                    log.info("文件已存在服务器上,但不存在虚拟路径");
+                    log.info("文件已存在服务器上,但不存在虚拟路径上");
                     Folder folder = folderService.selectFolderByFolderUUID(folderUUID);
+                    oneFile.setFileUploader(userName);
                     oneFile.setFileRelativePath(folder.getFolderRelativePath());
                     oneFile.setFileParentId(folderUUID);
                     fileInfoService.addFile(oneFile);
@@ -136,7 +140,7 @@ public class FileUploadController {
     }
     //使用Body传参的话 MultipartFile会序列化失败
     @PostMapping("/chunk")
-//    @RequiresAuthentication
+    @RequiresAuthentication
     public Result uploadChunk(
             @RequestParam("chunk") MultipartFile chunk,
             @RequestParam("md5") String md5,
@@ -171,10 +175,9 @@ public class FileUploadController {
         String[] split = fileName.split("\\.");
         //再获取文件类型
         String type = split[split.length - 1];
-        String resultFileName = filePath + File.separator +userName + File.separator + userUploadFilePath + File.separator + md5 + "." + type;
+        String resultFileName = filePath + File.separator  + md5 + "." + type;
         chunkInfoService.saveChunk(chunk,md5,index,chunkSize,resultFileName,userName);
         log.info("上传分片: {},{},{},{}",index,chunkTotal,fileName,userName);
-
 
         if(Objects.equals(index,chunkTotal)){
             FileInfo fileInfo = new FileInfo();
@@ -183,15 +186,21 @@ public class FileUploadController {
                 Folder folder = folderService.selectFolderByFolderUUID(folderUUID);
                 fileInfo.setFileRelativePath(folder.getFolderRelativePath());
             }else {
-                fileInfo.setFileRelativePath("root");
+                fileInfo.setFileRelativePath(userName);
             }
             LocalDateTimeFormatterUtils localDateTimeFormatterUtils = new LocalDateTimeFormatterUtils();
+            File file = new File(resultFileName);
+            if (file.canRead()){
+                Tika tika = new Tika();
+                String detect = tika.detect(file);
+                fileInfo.setFileType(detect);
+            }
             fileInfo.setFileName(fileName);
             fileInfo.setFileMD5(md5);
             fileInfo.setFileSize(fileSize);
-            fileInfo.setFileType(type);
-            fileInfo.setFileParentId(fileParentID);
-            fileInfo.setFileAbsolutePath(filePath + File.separator + userName + File.separator + userUploadFilePath);
+            fileInfo.setFileExtension(type);
+            fileInfo.setFileParentId(userName);
+            fileInfo.setFileAbsolutePath(filePath);
             fileInfo.setFileUploader(userName);
             fileInfo.setFileUploadTime(localDateTimeFormatterUtils.getStartDateTime());
             fileInfoService.addFile(fileInfo);

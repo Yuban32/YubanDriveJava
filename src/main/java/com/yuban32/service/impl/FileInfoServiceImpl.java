@@ -67,7 +67,7 @@ public class FileInfoServiceImpl extends ServiceImpl<FileInfoMapper, FileInfo> i
         //获取文件类型
         String[] split = resultFileName.split("\\.");
         String type = split[split.length - 1];
-        Path thumbnailFolder = Paths.get(filePath + File.separator + username + File.separator + userUploadFilePath + File.separator + "Thumbnail");
+        Path thumbnailFolder = Paths.get(filePath + File.separator + "Thumbnail");
 
         File file = new File(resultFileName);
         Tika tika = new Tika();

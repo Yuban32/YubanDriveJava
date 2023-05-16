@@ -4,6 +4,7 @@ import com.yuban32.response.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.shiro.authc.ExpiredCredentialsException;
 import org.apache.shiro.authz.UnauthenticatedException;
+import org.apache.shiro.authz.UnauthorizedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.ObjectError;
@@ -24,7 +25,7 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     @ExceptionHandler(value = UnauthenticatedException.class)
     public Result handler(UnauthenticatedException e){
-        return Result.error(String.valueOf(HttpStatus.UNAUTHORIZED),"此接口需要授权");
+        return Result.error(String.valueOf(HttpStatus.UNAUTHORIZED),"未经身份验证");
     }
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)
@@ -47,6 +48,12 @@ public class GlobalExceptionHandler {
     public Result handler(RuntimeException e) {
         log.error("运行时异常：----------------{}", e);
         return Result.error(e.getMessage());
+    }
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    @ExceptionHandler(value = UnauthorizedException.class)
+    public Result handler(UnauthorizedException e){
+        log.error("未授权的访问:----------------{}",e);
+        return new Result(HttpStatus.UNAUTHORIZED.value(),"未授权的访问",null);
     }
     @ExceptionHandler(value = ExpiredCredentialsException.class)
     public Result handler(ExpiredCredentialsException e){

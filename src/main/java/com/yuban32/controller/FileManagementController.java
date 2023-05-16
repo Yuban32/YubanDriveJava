@@ -67,7 +67,7 @@ public class FileManagementController {
                 temp.setUploader(fileInfo.getFileUploader());
                 temp.setCreatedTime(fileInfo.getFileUploadTime());
                 temp.setRelativePath(fileInfo.getFileRelativePath());
-
+                temp.setFileExtension(fileInfo.getFileExtension());
                 File checkFileType = new File(fileInfo.getFileAbsolutePath() + File.separator + fileInfo.getFileMD5() + "." + fileInfo.getFileType());
                 Tika tika = new Tika();
                 String detect = tika.detect(checkFileType);
