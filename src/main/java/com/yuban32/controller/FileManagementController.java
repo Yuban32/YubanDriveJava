@@ -13,6 +13,7 @@ import com.yuban32.util.LocalDateTimeFormatterUtils;
 import com.yuban32.vo.FileAndFolderVO;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.shiro.authz.annotation.RequiresAuthentication;
+import org.apache.shiro.authz.annotation.RequiresRoles;
 import org.apache.tika.Tika;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
@@ -43,6 +44,8 @@ public class FileManagementController {
     private JWTUtils jwtUtils;
 
     @GetMapping("/list")
+    @RequiresAuthentication
+    @RequiresRoles("admin")
     public Result getAllUserFile(HttpServletRequest request) throws IOException {
         String username = jwtUtils.getClaimByToken(request.getHeader("Authorization")).getSubject();
         List<FileInfo> fileList = fileInfoService.list(new QueryWrapper<FileInfo>().eq("f_status",1));
@@ -50,7 +53,7 @@ public class FileManagementController {
         String domain = request.getServerName();
         int port = request.getServerPort();
         //拼接缩略图
-        String imagePathURL = domain + ":" + port + "/download/" + username + "/userUpload/";
+        String imagePathURL = domain + ":" + port + "/images/";
         String thumbnailUrl = imagePathURL + "Thumbnail/Thumbnail";
 
         log.info("{}",domain);
@@ -68,14 +71,14 @@ public class FileManagementController {
                 temp.setCreatedTime(fileInfo.getFileUploadTime());
                 temp.setRelativePath(fileInfo.getFileRelativePath());
                 temp.setFileExtension(fileInfo.getFileExtension());
-                File checkFileType = new File(fileInfo.getFileAbsolutePath() + File.separator + fileInfo.getFileMD5() + "." + fileInfo.getFileType());
+                File checkFileType = new File(fileInfo.getFileAbsolutePath() + File.separator + fileInfo.getFileMD5() + "." + fileInfo.getFileExtension());
                 Tika tika = new Tika();
                 String detect = tika.detect(checkFileType);
                 String[] fileType = detect.split("/");
                 temp.setCategory(detect);
                 if(fileType[0].equals("image")){
-                    temp.setThumbnailURL(thumbnailUrl+ fileInfo.getFileMD5() + "." + fileInfo.getFileType());
-                    temp.setFullSizeImageURL(imagePathURL + fileInfo.getFileMD5() + "." + fileInfo.getFileType());
+                    temp.setThumbnailURL(thumbnailUrl+ fileInfo.getFileMD5() + "." + fileInfo.getFileExtension());
+                    temp.setFullSizeImageURL(imagePathURL + fileInfo.getFileMD5() + "." + fileInfo.getFileExtension());
 
                 }
 
@@ -86,10 +89,13 @@ public class FileManagementController {
     }
 
     @PostMapping("/rename")
-//    @RequiresAuthentication
+    @RequiresAuthentication
     public Result fileRename(@Validated @RequestBody FileRenameDTO fileRenameDTO , HttpServletRequest request){
         String username = jwtUtils.getClaimByToken(request.getHeader("Authorization")).getSubject();
         fileRenameDTO.setUserName(username);
+        if(fileRenameDTO.getFolderUUID().equals("root")){
+            fileRenameDTO.setFolderUUID(username);
+        }
         Boolean isSuccess = fileInfoService.fileRenameByFileNameAnyFolderUUID(fileRenameDTO);
         if(isSuccess){
             FileInfo one = fileInfoService.getOne(new QueryWrapper<FileInfo>().eq("f_name", fileRenameDTO.getTargetFileName()).eq("f_parent_id", fileRenameDTO.getFolderUUID()).eq("f_uploader",username));
@@ -126,7 +132,7 @@ public class FileManagementController {
     }
 
     @PostMapping("/cut")
-//    @RequiresAuthentication
+    @RequiresAuthentication
     public Result cutFile(@RequestParam("fileName")String fileName,
                           @RequestParam("currentFolderUUID")String currentFolderUUID,
                           @RequestParam("newFolderUUID")String newFolderUUID){
@@ -155,6 +161,7 @@ public class FileManagementController {
     }
 
     @DeleteMapping("/delete")
+    @RequiresAuthentication
     public Result deleteFile(@RequestParam("fileName")String fileName,
                              @RequestParam("currentFolderUUID")String currentFolderUUID){
 

@@ -3,6 +3,7 @@ package com.yuban32.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.yuban32.dto.FileRenameDTO;
 import com.yuban32.entity.FileInfo;
+import org.bytedeco.javacv.FFmpegFrameGrabber;
 
 import java.util.List;
 
@@ -18,5 +19,4 @@ public interface FileInfoService extends IService<FileInfo> {
     Boolean fileRenameByFileNameAnyFolderUUID(FileRenameDTO fileRenameDTO);
 
     void createThumbnail(String resultFileName, String username , String md5);
-
 }

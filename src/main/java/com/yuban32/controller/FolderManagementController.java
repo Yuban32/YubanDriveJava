@@ -41,6 +41,7 @@ public class FolderManagementController {
     private JWTUtils jwtUtils;
 
     @GetMapping("/list")
+    @RequiresAuthentication
     public Result getAllUserFolder(){
         List<FileAndFolderVO> fileAndFolderVO = new ArrayList<>();
         List<Folder> foldersList = folderService.list(new QueryWrapper<Folder>().eq("folder_status",0));
@@ -63,9 +64,9 @@ public class FolderManagementController {
             return new Result(200,"文件列表查询成功",fileAndFolderVO);
         }
     }
-
+    //暂时废弃,没做完
     @PostMapping("/copy")
-//    @RequiresAuthentication
+    @RequiresAuthentication
     public Result folderCopy(@RequestParam("currentFolderUUID")String currentFolderUUID,
                              @RequestParam("targetFolderUUID")String targetFolderUUID){
         log.info("查询的参数currentFolderUUID=>{}, targetFolderUUID=>{} ",currentFolderUUID,targetFolderUUID);

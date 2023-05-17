@@ -161,6 +161,7 @@ public class UserController {
 
     }
     @GetMapping
+    @RequiresAuthentication
     public Result getUserInfo(HttpServletRequest request){
         String userName;
         try{
@@ -184,6 +185,7 @@ public class UserController {
     }
     //用户编辑
     @PostMapping("/edit")
+    @RequiresAuthentication
     public Result userEdit(@Validated @RequestBody UserEditDTO userEditDTO){
         log.info("userEdit=>{}",userEditDTO);
         UpdateWrapper<User> updateWrapper = new UpdateWrapper<>();

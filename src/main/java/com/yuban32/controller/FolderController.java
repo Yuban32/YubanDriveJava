@@ -42,14 +42,19 @@ public class FolderController {
             @RequestParam("folderUUID") String requestFolderUUID,
             @RequestParam("newFolderName") String requestNewFolderName,
             HttpServletRequest request){
-
         String username = jwtUtils.getClaimByToken(request.getHeader("Authorization")).getSubject();
+        if(requestFolderUUID.equals("root")){
+            requestFolderUUID = username;
+        }
         return folderService.createFolder(requestFolderUUID,requestNewFolderName, username);
     }
     @GetMapping("/list")
-//    @RequiresAuthentication
+    @RequiresAuthentication
     public Result selectFolderByUserNameAndParentFolderUUID(@RequestParam("parentFolderUUID")String parentFolderUUID,HttpServletRequest request){
         String userName = jwtUtils.getClaimByToken(request.getHeader("Authorization")).getSubject();
+        if(parentFolderUUID.equals("root")){
+            parentFolderUUID = userName;
+        }
         List<FileAndFolderVO> fileAndFolderVO = new ArrayList<>();
         List<Folder> foldersList = folderService.list(new QueryWrapper<Folder>().eq("username",userName).eq("parent_folder_uuid",parentFolderUUID).eq("folder_status",1));
         if (foldersList.isEmpty()){
@@ -72,9 +77,9 @@ public class FolderController {
         }
     }
     @PostMapping("/rename")
+    @RequiresAuthentication
     public Result folderRename(@Validated @RequestBody FolderRenameDTO renameDTO , HttpServletRequest request){
         String userName = jwtUtils.getClaimByToken(request.getHeader("Authorization")).getSubject();
-
         Boolean folderRename = folderMapper.folderRename(renameDTO.getCurrentFolderUUID(), renameDTO.getFolderName(), userName);
         log.info("{},{}",renameDTO,folderRename);
         if (folderRename){

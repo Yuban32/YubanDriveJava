@@ -30,6 +30,11 @@ spring:
   redis:
     host: 43.129.76.216
     port: 6379
+  mail:
+    host: smtp.mxhichina.com
+    port: 25
+    username: YubanDrive@yuban32.com
+    password: URGEX3Yk&WS&7iA
 
 
 #配置Shiro-redis插件的

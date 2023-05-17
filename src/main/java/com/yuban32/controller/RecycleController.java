@@ -14,6 +14,7 @@ import com.yuban32.util.JWTUtils;
 import com.yuban32.vo.FileAndFolderVO;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.shiro.authz.annotation.RequiresAuthentication;
 import org.apache.tika.Tika;
 import org.apache.tomcat.util.http.fileupload.FileUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,6 +57,7 @@ public class RecycleController {
      * @return Result
      **/
     @GetMapping
+    @RequiresAuthentication
     public Result getRecycleFileList(HttpServletRequest request) throws IOException {
         String userName = jwtUtils.getClaimByToken(request.getHeader("Authorization")).getSubject();
         HashSet<FileAndFolderVO> fileAndFolderVO = new HashSet<>();
@@ -66,7 +68,7 @@ public class RecycleController {
         String domain = request.getServerName();
         int port = request.getServerPort();
         //拼接缩略图
-        String imagePathURL = domain + ":" + port + "/download/" + userName + "/userUpload/";
+        String imagePathURL = domain + ":" + port + "/images/";
         String thumbnailUrl = imagePathURL + "Thumbnail" + File.separator + "Thumbnail";
 
         if (foldersList.isEmpty() && fileInfoList.isEmpty()) {
@@ -108,14 +110,14 @@ public class RecycleController {
                     temp.setCreatedTime(fileInfo.getFileUploadTime());
                     temp.setRelativePath(fileInfo.getFileRelativePath());
                     temp.setFileExtension(fileInfo.getFileExtension());
-                    File checkFileType = new File(fileInfo.getFileAbsolutePath() + File.separator + fileInfo.getFileMD5() + "." + fileInfo.getFileType());
+                    File checkFileType = new File(fileInfo.getFileAbsolutePath() + File.separator + fileInfo.getFileMD5() + "." + fileInfo.getFileExtension());
                     Tika tika = new Tika();
                     String detect = tika.detect(checkFileType);
                     String[] fileType = detect.split("/");
                     temp.setCategory(detect);
                     if (fileType[0].equals("image")) {
-                        temp.setThumbnailURL(thumbnailUrl + fileInfo.getFileMD5() + "." + fileInfo.getFileType());
-                        temp.setFullSizeImageURL(imagePathURL + fileInfo.getFileMD5() + "." + fileInfo.getFileType());
+                        temp.setThumbnailURL(thumbnailUrl + fileInfo.getFileMD5() + "." + fileInfo.getFileExtension());
+                        temp.setFullSizeImageURL(imagePathURL + fileInfo.getFileMD5() + "." + fileInfo.getFileExtension());
                     }
                     fileAndFolderVO.add(temp); // 添加到Set集合中
                 }
@@ -132,11 +134,15 @@ public class RecycleController {
      * @return Result
      **/
     @PostMapping("/file")
+    @RequiresAuthentication
     public Result removeFileToRecycle(@RequestParam("currentFolderUUID") String currentFolderUUID,
                                       @RequestParam("fileName") String fileName,
                                       HttpServletRequest request) {
         String userName = jwtUtils.getClaimByToken(request.getHeader("Authorization")).getSubject();
         //根据当前文件夹的UUID和文件名还有用户名为条件 将文件移入回收站
+        if(currentFolderUUID.equals("root")){
+            currentFolderUUID = userName;
+        }
         Boolean isSuccess = fileInfoMapper.removeFileToRecycle(currentFolderUUID, fileName, userName);
         if (isSuccess) {
             return Result.success("文件已移入回收站", null);
@@ -152,6 +158,7 @@ public class RecycleController {
      * @return Result
      **/
     @PostMapping("/folder")
+    @RequiresAuthentication
     public Result removeFolderToRecycle(@RequestParam("currentFolderUUID") String currentFolderUUID, HttpServletRequest request) {
         String userName = jwtUtils.getClaimByToken(request.getHeader("Authorization")).getSubject();
         //根据当前文件夹的UUID 查询文件夹下有没有子文件和子文件夹
@@ -176,13 +183,14 @@ public class RecycleController {
     }
 
     /***
-     * @description 永久删除文件
+     * @description 永久删除文件 管理员和用户共用方法
      * @param fileUUID
      * @param request
      * @return Result
      **/
     @SneakyThrows
     @PostMapping("/trash")
+    @RequiresAuthentication
     public Result permanentlyDelete(@RequestParam("fileUUID") String fileUUID, HttpServletRequest request) {
         String userName = jwtUtils.getClaimByToken(request.getHeader("Authorization")).getSubject();
         //处理文件
@@ -240,6 +248,7 @@ public class RecycleController {
      **/
 
     @PostMapping("/restore")
+    @RequiresAuthentication
     public Result restore(@RequestParam("fileUUID")String fileUUID , @RequestParam("type")String type , HttpServletRequest request){
         String userName = jwtUtils.getClaimByToken(request.getHeader("Authorization")).getSubject();
         Boolean restoreFile = false;
