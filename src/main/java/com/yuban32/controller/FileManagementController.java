@@ -39,55 +39,15 @@ public class FileManagementController {
     @Autowired
     private FileInfoService fileInfoService;
     @Autowired
-    private FolderService folderService;
-    @Autowired
     private JWTUtils jwtUtils;
-
-    @GetMapping("/list")
-    @RequiresAuthentication
-    @RequiresRoles("admin")
-    public Result getAllUserFile(HttpServletRequest request) throws IOException {
-        String username = jwtUtils.getClaimByToken(request.getHeader("Authorization")).getSubject();
-        List<FileInfo> fileList = fileInfoService.list(new QueryWrapper<FileInfo>().eq("f_status",1));
-        List<FileAndFolderVO> fileAndFolderVO = new ArrayList<>();
-        String domain = request.getServerName();
-        int port = request.getServerPort();
-        //拼接缩略图
-        String imagePathURL = domain + ":" + port + "/images/";
-        String thumbnailUrl = imagePathURL + "Thumbnail/Thumbnail";
-
-        log.info("{}",domain);
-        if (fileList.isEmpty()){
-            return new Result(205,"没有查到文件",null);
-        }else{
-            for( FileInfo fileInfo : fileList){
-                FileAndFolderVO temp = new FileAndFolderVO();
-                temp.setType("file");
-                temp.setName(fileInfo.getFileName());
-                temp.setFileUUID(fileInfo.getFileMD5());
-                temp.setParentFileUUID(fileInfo.getFileParentId());
-                temp.setSize(fileInfo.getFileSize());
-                temp.setUploader(fileInfo.getFileUploader());
-                temp.setCreatedTime(fileInfo.getFileUploadTime());
-                temp.setRelativePath(fileInfo.getFileRelativePath());
-                temp.setFileExtension(fileInfo.getFileExtension());
-                File checkFileType = new File(fileInfo.getFileAbsolutePath() + File.separator + fileInfo.getFileMD5() + "." + fileInfo.getFileExtension());
-                Tika tika = new Tika();
-                String detect = tika.detect(checkFileType);
-                String[] fileType = detect.split("/");
-                temp.setCategory(detect);
-                if(fileType[0].equals("image")){
-                    temp.setThumbnailURL(thumbnailUrl+ fileInfo.getFileMD5() + "." + fileInfo.getFileExtension());
-                    temp.setFullSizeImageURL(imagePathURL + fileInfo.getFileMD5() + "." + fileInfo.getFileExtension());
-
-                }
-
-                fileAndFolderVO.add(temp);
-            }
-            return new Result(200,"文件列表查询成功",fileAndFolderVO);
-        }
-    }
-
+    @Autowired
+    private FolderService folderService;
+    /**
+     * @description 文件重命名
+     * @param fileRenameDTO
+     * @param request
+     * @return Result
+     **/
     @PostMapping("/rename")
     @RequiresAuthentication
     public Result fileRename(@Validated @RequestBody FileRenameDTO fileRenameDTO , HttpServletRequest request){
@@ -96,8 +56,10 @@ public class FileManagementController {
         if(fileRenameDTO.getFolderUUID().equals("root")){
             fileRenameDTO.setFolderUUID(username);
         }
+        //调用接口 执行重命名操作
         Boolean isSuccess = fileInfoService.fileRenameByFileNameAnyFolderUUID(fileRenameDTO);
         if(isSuccess){
+            //成功后 查询文件,并将更新后的文件信息返回给前端
             FileInfo one = fileInfoService.getOne(new QueryWrapper<FileInfo>().eq("f_name", fileRenameDTO.getTargetFileName()).eq("f_parent_id", fileRenameDTO.getFolderUUID()).eq("f_uploader",username));
             FileAndFolderVO temp = new FileAndFolderVO();
             temp.setName(one.getFileName());
@@ -108,7 +70,10 @@ public class FileManagementController {
         }
     }
 
-    @PostMapping("/copy")
+
+    //下面两个功能未完成 暂时废弃
+
+//    @PostMapping("/copy")
 //    @RequiresAuthentication
     public Result fileCopy(@RequestParam("fileName")String fileName,
                            @RequestParam("currentFolderUUID")String currentFolderUUID,
@@ -131,8 +96,8 @@ public class FileManagementController {
         return new Result(200,"复制文件成功",currentFile);
     }
 
-    @PostMapping("/cut")
-    @RequiresAuthentication
+//    @PostMapping("/cut")
+//    @RequiresAuthentication
     public Result cutFile(@RequestParam("fileName")String fileName,
                           @RequestParam("currentFolderUUID")String currentFolderUUID,
                           @RequestParam("newFolderUUID")String newFolderUUID){
@@ -158,18 +123,5 @@ public class FileManagementController {
             return new Result(400,"文件剪贴失败",null);
         }
 
-    }
-
-    @DeleteMapping("/delete")
-    @RequiresAuthentication
-    public Result deleteFile(@RequestParam("fileName")String fileName,
-                             @RequestParam("currentFolderUUID")String currentFolderUUID){
-
-        boolean remove = fileInfoService.remove(new QueryWrapper<FileInfo>().eq("f_name", fileName).eq("f_parent_id", currentFolderUUID));
-        if(remove){
-            return new Result(200,"文件删除成功",null);
-        }else {
-            return new Result(400,"文件删除失败",null);
-        }
     }
 }

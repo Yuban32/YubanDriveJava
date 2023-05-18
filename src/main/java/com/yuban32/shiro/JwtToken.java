@@ -16,11 +16,13 @@ public class JwtToken implements AuthenticationToken, Serializable {
     public JwtToken(String token){
         this.token = token;
     }
+    //当前用户身份信息
     @Override
     public Object getPrincipal() {
         return token;
     }
 
+    //当前用户凭证信息
     @Override
     public Object getCredentials() {
         return token;

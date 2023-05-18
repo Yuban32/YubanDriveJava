@@ -10,31 +10,20 @@ import com.yuban32.response.Result;
 import com.yuban32.service.ChunkInfoService;
 import com.yuban32.service.FileInfoService;
 import com.yuban32.service.FolderService;
-import com.yuban32.util.FilePathUtils;
 import com.yuban32.util.JWTUtils;
 import com.yuban32.util.LocalDateTimeFormatterUtils;
 import com.yuban32.util.StorageUtils;
-import com.yuban32.vo.FileUploadChunkVO;
 import lombok.extern.slf4j.Slf4j;
-import net.coobird.thumbnailator.Thumbnails;
 import org.apache.shiro.authz.annotation.RequiresAuthentication;
 import org.apache.tika.Tika;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseEntity;
 import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.util.UriUtils;
-
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,8 +42,6 @@ public class FileUploadController {
 
     @Autowired
     private JWTUtils jwtUtils;
-    @Value("${base-file-path.user-upload-file-path}")
-    private String userUploadFilePath;
     @Autowired
     private FileInfoService fileInfoService;
     @Autowired
@@ -183,18 +170,22 @@ public class FileUploadController {
             FileInfo fileInfo = new FileInfo();
             //判断前端传来的folderUUID是否是root
             if(!folderUUID.equals("root")){
+                //不是就找父文件夹 然后把文件的相对路径改为父文件夹的相对路径
                 Folder folder = folderService.selectFolderByFolderUUID(folderUUID);
                 fileInfo.setFileRelativePath(folder.getFolderRelativePath());
             }else {
+                //是root就存根目录
                 fileInfo.setFileRelativePath(userName);
             }
             LocalDateTimeFormatterUtils localDateTimeFormatterUtils = new LocalDateTimeFormatterUtils();
             File file = new File(resultFileName);
             if (file.canRead()){
+                //用Tika库来鉴别文件类型
                 Tika tika = new Tika();
                 String detect = tika.detect(file);
                 fileInfo.setFileType(detect);
             }
+            //封装对象
             fileInfo.setFileName(fileName);
             fileInfo.setFileMD5(md5);
             fileInfo.setFileSize(fileSize);
@@ -203,11 +194,14 @@ public class FileUploadController {
             fileInfo.setFileAbsolutePath(filePath);
             fileInfo.setFileUploader(userName);
             fileInfo.setFileUploadTime(localDateTimeFormatterUtils.getStartDateTime());
+            //调用Service接口 把文件数据写入数据库
             fileInfoService.addFile(fileInfo);
+            //从数据库中删除掉已添加的分片信息
             chunkInfoService.deleteChunkByMd5(md5);
+            //更新已用的存储空间
             userStorageQuota.setUsedStorage(fileSize);
             userStorageQuotaMapper.updateById(userStorageQuota);
-            //是图片的话就创建一个图片缩略图
+            //调用接口 这接口的作用是 是图片的话就创建一个图片缩略图
             fileInfoService.createThumbnail(resultFileName,userName,md5);
             return new Result(200,"文件上传成功",index);
         }else {

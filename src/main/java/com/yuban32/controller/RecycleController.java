@@ -3,6 +3,7 @@ package com.yuban32.controller;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.yuban32.entity.FileInfo;
 import com.yuban32.entity.Folder;
+import com.yuban32.entity.User;
 import com.yuban32.entity.UserStorageQuota;
 import com.yuban32.mapper.FileInfoMapper;
 import com.yuban32.mapper.FolderMapper;
@@ -10,6 +11,7 @@ import com.yuban32.mapper.UserStorageQuotaMapper;
 import com.yuban32.response.Result;
 import com.yuban32.service.FileInfoService;
 import com.yuban32.service.FolderService;
+import com.yuban32.service.UserService;
 import com.yuban32.util.JWTUtils;
 import com.yuban32.vo.FileAndFolderVO;
 import lombok.SneakyThrows;
@@ -48,6 +50,8 @@ public class RecycleController {
     private FileInfoMapper fileInfoMapper;
     @Autowired
     private UserStorageQuotaMapper userStorageQuotaMapper;
+    @Autowired
+    private UserService userService;
     @Autowired
     private JWTUtils jwtUtils;
 
@@ -140,7 +144,7 @@ public class RecycleController {
                                       HttpServletRequest request) {
         String userName = jwtUtils.getClaimByToken(request.getHeader("Authorization")).getSubject();
         //根据当前文件夹的UUID和文件名还有用户名为条件 将文件移入回收站
-        if(currentFolderUUID.equals("root")){
+        if (currentFolderUUID.equals("root")) {
             currentFolderUUID = userName;
         }
         Boolean isSuccess = fileInfoMapper.removeFileToRecycle(currentFolderUUID, fileName, userName);
@@ -193,52 +197,73 @@ public class RecycleController {
     @RequiresAuthentication
     public Result permanentlyDelete(@RequestParam("fileUUID") String fileUUID, HttpServletRequest request) {
         String userName = jwtUtils.getClaimByToken(request.getHeader("Authorization")).getSubject();
+        User userInfo = userService.getOne(new QueryWrapper<User>().eq("username", userName));
         //处理文件
         List<FileInfo> fileInfoList = fileInfoService.list(new QueryWrapper<FileInfo>().eq("f_md5", fileUUID));
         //如果数据库中查到当前文件存在多份的话  则只从数据库中删除当前文件 当数据库中只剩一份时 则执行IO删除操作
-        //判断 先查询文件 当查询结果为空时 执行删除文件夹 不为空时 执行删除文件
+        //判断 先查询文件 当查询结果为空时 执行删除文件夹 不为空时
+        log.info("fileInfoList{}", fileInfoList.isEmpty());
         if (!fileInfoList.isEmpty()) {
             //获取文件的大小
             double fileSize = fileInfoList.get(0).getFileSize();
-            boolean deleteFile = deleteFile(fileInfoList , false , null,null);
-            if (deleteFile){
+            //调用封装好的方法 删除文件
+            boolean deleteFile = deleteFile(fileInfoList, false, null, null,userInfo.getRole());
+            if (deleteFile) {
                 //先将用户已用的存储配额查询出来
                 //然后减去要删除文件的大小
                 //再更新到数据库中,完成恢复用户空间
                 UserStorageQuota userStorageQuota = userStorageQuotaMapper.selectUserStorageQuotaByUserName(userName);
                 userStorageQuotaMapper.updateUsedStorageByUsername(userStorageQuota.getUsedStorage() - fileSize, userName);
-                return new Result(200,"文件彻底删除成功",null);
-            }else {
-                return new Result(205,"文件彻底删除失败",null);
+                return new Result(200, "文件彻底删除成功", null);
+            } else {
+                return new Result(205, "文件彻底删除失败", null);
             }
-        }
-        else {
+        } else {
             //执行删除文件夹
-            QueryWrapper<FileInfo> childrenFileListQueryWrapper = new QueryWrapper<FileInfo>().eq("f_parent_id", fileUUID).eq("f_uploader", userName).eq("f_status", 0);
-            QueryWrapper<Folder> childrenFolderListQueryWrapper = new QueryWrapper<Folder>().eq("parent_folder_uuid", fileUUID).eq("username", userName).eq("folder_status", 0);
-            QueryWrapper<Folder> folderQueryWrapper = new QueryWrapper<Folder>().eq("folder_uuid", fileUUID).eq("username", userName).eq("folder_status", 0);
-            Folder one = folderService.getOne(folderQueryWrapper);
-            if(one != null){
+            log.info("执行删除文件夹");
+            QueryWrapper<Folder> folderQueryWrapper = null;
+            QueryWrapper<Folder> childrenFolderListQueryWrapper = null;
+            QueryWrapper<FileInfo> childrenFileListQueryWrapper = null;
+            //这个判断用于判断当前用户是否是管理员
+            if (userInfo.getRole().equals("admin")) {
+                folderQueryWrapper = new QueryWrapper<Folder>().eq("folder_uuid", fileUUID);
+                childrenFolderListQueryWrapper = new QueryWrapper<Folder>().eq("parent_folder_uuid", fileUUID);
+                childrenFileListQueryWrapper = new QueryWrapper<FileInfo>().eq("f_parent_id", fileUUID);
+
+            } else {
+                folderQueryWrapper = new QueryWrapper<Folder>().eq("folder_uuid", fileUUID).eq("username", userName);
+                childrenFolderListQueryWrapper = new QueryWrapper<Folder>().eq("parent_folder_uuid", fileUUID).eq("username", userName);
+                childrenFileListQueryWrapper = new QueryWrapper<FileInfo>().eq("f_parent_id", fileUUID).eq("f_uploader", userName);
+
+            }
+            //判断是文件夹是否存在
+            Folder folderExists = folderService.getOne(folderQueryWrapper);
+            if (folderExists != null) {
+                //存在 开始判断是否有子文件夹
                 List<FileInfo> childrenFileList = fileInfoService.list(childrenFileListQueryWrapper);
                 List<Folder> childrenFolderList = folderService.list(childrenFolderListQueryWrapper);
-                if (!childrenFolderList.isEmpty()){
+                //有子文件夹就删除连同子文件夹一块删除
+                if (!childrenFolderList.isEmpty()) {
                     folderService.remove(childrenFolderListQueryWrapper);
-                }
+                }//有子文件就删除连同子文件一块删除
                 if (!childrenFileList.isEmpty()) {
-                    boolean deleteFile = deleteFile(childrenFileList , true , fileUUID,userName);
-                    if (deleteFile){
-                        return new Result(200,"文件彻底删除成功",null);
-                    }else {
-                        return new Result(205,"文件彻底删除失败",null);
+                    //调用封装好的方法来删除子文件
+                    boolean deleteFile = deleteFile(childrenFileList, true, fileUUID, userName,userInfo.getRole());
+                    if (deleteFile) {
+                        return new Result(200, "文件彻底删除成功", null);
+                    } else {
+                        return new Result(205, "文件彻底删除失败", null);
                     }
                 }
+                //如果不存在子文件和子文件夹的话  就直接把当前文件夹删除就好了
                 folderService.remove(folderQueryWrapper);
                 return new Result(200, "已彻底删除", null);
-            }else {
+            } else {
                 return new Result(205, "删除失败，文件夹不存在", null);
             }
         }
     }
+
     /***
      * @description 恢复文件
      * @param fileUUID
@@ -249,38 +274,53 @@ public class RecycleController {
 
     @PostMapping("/restore")
     @RequiresAuthentication
-    public Result restore(@RequestParam("fileUUID")String fileUUID , @RequestParam("type")String type , HttpServletRequest request){
+    public Result restore(@RequestParam("fileUUID") String fileUUID, @RequestParam("type") String type, HttpServletRequest request) {
+        //只需改变文件和文件夹的status就行 1==不在回收站内  0==在回收站内
         String userName = jwtUtils.getClaimByToken(request.getHeader("Authorization")).getSubject();
         Boolean restoreFile = false;
         Boolean restoreFolder = false;
-        if(type.equals("file")){
+        //根据类型判断
+        if (type.equals("file")) {
             restoreFile = fileInfoMapper.restoreFile(fileUUID, userName);
         }
-        if(type.equals("folder")){
+        if (type.equals("folder")) {
             restoreFolder = folderMapper.restoreFolder(fileUUID, userName);
         }
-        if(restoreFile || restoreFolder){
-            return new Result(200,"恢复成功",null);
-        }else {
-            return new Result(205,"恢复失败,请联系管理员",null);
+        if (restoreFile || restoreFolder) {
+            return new Result(200, "恢复成功", null);
+        } else {
+            return new Result(205, "恢复失败,请联系管理员", null);
         }
     }
 
     //公用方法
-    public boolean deleteFile(List<FileInfo> fileInfoList,Boolean isChildren,String fileUUID,String userName) throws IOException {
+    public boolean deleteFile(List<FileInfo> fileInfoList, Boolean isChildren, String fileUUID, String userName,String role) throws IOException {
         boolean result = false;
         QueryWrapper<FileInfo> fileInfoQueryWrapper = null;
-        if(isChildren){
-            fileInfoQueryWrapper = new QueryWrapper<FileInfo>()
-                    .eq("f_parent_id", fileUUID)
-                    .eq("f_uploader", userName)
-                    .eq("f_status", 0);
+        if(role.equals("admin")){
+            //管理员
+            if (isChildren) {
+                fileInfoQueryWrapper = new QueryWrapper<FileInfo>()
+                        .eq("f_parent_id", fileUUID);
+            } else {
+                fileInfoQueryWrapper = new QueryWrapper<FileInfo>()
+                        .eq("f_md5", fileInfoList.get(0).getFileMD5());
+            }
         }else {
-            fileInfoQueryWrapper = new QueryWrapper<FileInfo>()
-                    .eq("f_md5", fileInfoList.get(0).getFileMD5())
-                    .eq("f_uploader", fileInfoList.get(0).getFileUploader())
-                    .eq("f_status", 0);
+            //用户
+            if (isChildren) {
+                fileInfoQueryWrapper = new QueryWrapper<FileInfo>()
+                        .eq("f_parent_id", fileUUID)
+                        .eq("f_uploader", userName)
+                        .eq("f_status", 0);
+            } else {
+                fileInfoQueryWrapper = new QueryWrapper<FileInfo>()
+                        .eq("f_md5", fileInfoList.get(0).getFileMD5())
+                        .eq("f_uploader", fileInfoList.get(0).getFileUploader())
+                        .eq("f_status", 0);
+            }
         }
+        //传来的数据集合长度是否大于1
         if (fileInfoList.size() > 1) {
             // 多份删除数据字段
             result = fileInfoService.remove(fileInfoQueryWrapper);
@@ -288,11 +328,11 @@ public class RecycleController {
             // 单份IO删除
             FileInfo fileInfo = fileInfoList.get(0);
 
-            // 拼接文件名
-            String fileName = fileInfo.getFileMD5() + "." + fileInfo.getFileType();
+            // 拼接完整路经
+            String fileName = fileInfo.getFileMD5() + "." + fileInfo.getFileExtension();
             // 获取文件
             File checkFileType = new File(fileInfo.getFileAbsolutePath(), fileName);
-
+            //利用tika这个库来判断文件类型
             Tika tika = new Tika();
             String detect = tika.detect(checkFileType);
             String[] fileType = detect.split("/");
@@ -304,11 +344,11 @@ public class RecycleController {
                 }
             }
 
-            // 删除文件
+            // 如果文件存在 用FileUtils工具类强制删除文件
             if (checkFileType.exists()) {
                 FileUtils.forceDelete(checkFileType);
             }
-
+            //最后删除数据库里的记录
             result = fileInfoService.remove(fileInfoQueryWrapper);
         }
 

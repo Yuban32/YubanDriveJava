@@ -48,40 +48,14 @@ public class FolderController {
         }
         return folderService.createFolder(requestFolderUUID,requestNewFolderName, username);
     }
-    @GetMapping("/list")
-    @RequiresAuthentication
-    public Result selectFolderByUserNameAndParentFolderUUID(@RequestParam("parentFolderUUID")String parentFolderUUID,HttpServletRequest request){
-        String userName = jwtUtils.getClaimByToken(request.getHeader("Authorization")).getSubject();
-        if(parentFolderUUID.equals("root")){
-            parentFolderUUID = userName;
-        }
-        List<FileAndFolderVO> fileAndFolderVO = new ArrayList<>();
-        List<Folder> foldersList = folderService.list(new QueryWrapper<Folder>().eq("username",userName).eq("parent_folder_uuid",parentFolderUUID).eq("folder_status",1));
-        if (foldersList.isEmpty()){
-            return new Result(205,"没有查到文件",null);
-        }else{
-            for( Folder folders : foldersList){
-                FileAndFolderVO temp = new FileAndFolderVO();
-                temp.setType("folder");
-                temp.setCategory(null);
-                temp.setName(folders.getFolderName());
-                temp.setFileUUID(folders.getFolderUUID());
-                temp.setParentFileUUID(folders.getParentFolderUUID());
-                temp.setSize(null);
-                temp.setUploader(folders.getUsername());
-                temp.setCreatedTime(folders.getFolderCreateTime());
-                temp.setRelativePath(folders.getFolderRelativePath());
-                fileAndFolderVO.add(temp);
-            }
-            return new Result(200,"文件列表查询成功",fileAndFolderVO);
-        }
-    }
+
     @PostMapping("/rename")
     @RequiresAuthentication
     public Result folderRename(@Validated @RequestBody FolderRenameDTO renameDTO , HttpServletRequest request){
         String userName = jwtUtils.getClaimByToken(request.getHeader("Authorization")).getSubject();
         Boolean folderRename = folderMapper.folderRename(renameDTO.getCurrentFolderUUID(), renameDTO.getFolderName(), userName);
         log.info("{},{}",renameDTO,folderRename);
+        //成功的话 封装数据返回前端
         if (folderRename){
             Folder folder = folderMapper.selectOne(new QueryWrapper<Folder>().eq("folder_uuid", renameDTO.getCurrentFolderUUID()).eq("username", userName));
             FileAndFolderVO temp = new FileAndFolderVO();

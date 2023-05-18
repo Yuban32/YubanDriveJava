@@ -24,6 +24,7 @@ public class BlackListServiceImpl implements BlackListTokenService {
     public void setBlackListToken(String username, String token) {
         log.info("<++进入设置黑名单++>");
         String blackList = "BlackList_Token_"+username;
+        //将jwt加入到redis中 并设置过期时间为2天 和jwt有效期一致就行
         BoundValueOperations boundValueOperations = redisTemplate.boundValueOps(blackList);
         boundValueOperations.set(token, 2,TimeUnit.DAYS);
 
@@ -35,6 +36,7 @@ public class BlackListServiceImpl implements BlackListTokenService {
         String blackList = "BlackList_Token_"+username;
         BoundValueOperations boundValueOperations = redisTemplate.boundValueOps(blackList);
         String o = (String) boundValueOperations.get();
+        //获取黑名单 不存在就返回null
         if (o != null){
             o.replace("\"","");
         }

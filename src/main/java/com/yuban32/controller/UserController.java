@@ -61,19 +61,11 @@ public class UserController {
 
     @Value("${yuban32.jwt.expire}")
     private int expire;
-
-    @RequiresAuthentication
-    @GetMapping("/test")
-    public Result test(HttpServletRequest request){
-
-        return Result.success("OK");
-    }
-    @RequiresRoles(value = "admin")
-    @GetMapping("/testRole")
-    public Result testRole(){
-        return Result.success("OK");
-    }
-
+    /**
+     * @description 用户退出
+     * @param request
+     * @return Result
+     **/
     @GetMapping("/logout")
     public Result logout(HttpServletRequest request){
         SecurityUtils.getSubject().logout();
@@ -83,7 +75,12 @@ public class UserController {
         blackListTokenService.setBlackListToken(user,token);
         return Result.success("用户退出成功");
     }
-
+    /**
+     * @description 用户登录
+     * @param loginDto
+     * @param response
+     * @return Result
+     **/
     @PostMapping("/login")
     public Result login(@Validated @RequestBody LoginDto loginDto ,HttpServletResponse response){
         UserVO userVO = new UserVO();
@@ -160,6 +157,11 @@ public class UserController {
         }
 
     }
+    /**
+     * @description 获取用户信息
+     * @param request
+     * @return Result
+     **/
     @GetMapping
     @RequiresAuthentication
     public Result getUserInfo(HttpServletRequest request){
@@ -183,12 +185,18 @@ public class UserController {
         userVO.setRole(users.getRole());
         return Result.success("查询成功", userVO);
     }
-    //用户编辑
+    /**
+     * @description 用户编辑
+     * @param userEditDTO
+     * @return Result
+     **/
     @PostMapping("/edit")
     @RequiresAuthentication
     public Result userEdit(@Validated @RequestBody UserEditDTO userEditDTO){
-        log.info("userEdit=>{}",userEditDTO);
+//        log.info("userEdit=>{}",userEditDTO);
         UpdateWrapper<User> updateWrapper = new UpdateWrapper<>();
+        //加入条件 根据id来更新
+        updateWrapper.eq("id",userEditDTO.getId());
         if (!userEditDTO.getPassword().isEmpty()){
             //加密加盐
             User getUUID = userService.getOne(new QueryWrapper<User>().eq("id",userEditDTO.getId()));
@@ -207,6 +215,7 @@ public class UserController {
         }
         boolean success = userService.update(updateWrapper);
         if(success){
+            //修改成功后 封装数据返回前端
             User existUser = userService.getOne(new QueryWrapper<User>().eq("id", userEditDTO.getId()));
             UserStorageQuota userStorageQuota = userStorageQuotaMapper.selectOne(new QueryWrapper<UserStorageQuota>().eq("uuid", existUser.getUuid()));
             UserVO userVO = new UserVO();
@@ -228,6 +237,7 @@ public class UserController {
         //此工具类包含了雪花算法和加密加盐的操作
 
         User tempUser = new User();
+        //调用封装好的工具类来生成加密加盐后的密码
         String encryptionPassword = new UserControllerUtils().encryptionPassword(uuid,password);
         tempUser.setUuid(uuid);
         tempUser.setUsername(username);

@@ -7,6 +7,7 @@ import com.yuban32.mapper.FolderMapper;
 import com.yuban32.response.Result;
 import com.yuban32.service.FileInfoService;
 import com.yuban32.service.FolderService;
+import com.yuban32.service.SendFileAndFolderDataService;
 import com.yuban32.util.JWTUtils;
 import com.yuban32.vo.FileAndFolderVO;
 import lombok.extern.slf4j.Slf4j;
@@ -40,9 +41,11 @@ public class FIleController {
     private FolderService folderService;
     @Autowired
     FileInfoService fileInfoService;
+    @Autowired
+    private SendFileAndFolderDataService sendFileAndFolderDataService;
 
     /***
-     * @description 查询文件列表
+     * @description 查询文件列表 包含了文件和文件夹
      * @param parentFolderUUID
      * @param request
      * @return Result
@@ -51,56 +54,24 @@ public class FIleController {
     @RequiresAuthentication
     public Result getFileAndFolderList(@RequestParam("parentFolderUUID") String parentFolderUUID, HttpServletRequest request) throws IOException {
         log.info("查询文件列表");
+        //通过请求头获取JWT后解密获取用户名
         String userName = jwtUtils.getClaimByToken(request.getHeader("Authorization")).getSubject();
         if (parentFolderUUID.equals("root")) {
             parentFolderUUID = userName;
         }
+        //查询
         List<FileInfo> fileList = fileInfoService.list(new QueryWrapper<FileInfo>().eq("f_uploader", userName).eq("f_parent_id", parentFolderUUID).eq("f_status", 1));
         List<Folder> foldersList = folderService.list(new QueryWrapper<Folder>().eq("username", userName).eq("parent_folder_uuid", parentFolderUUID).eq("folder_status", 1));
-        //拼接缩略图
+        //拼接缩略图的地址
         String imagePathURL = request.getServerName() + ":" + request.getServerPort() + "/images/";
         String thumbnailUrl = imagePathURL + "Thumbnail/Thumbnail";
-
-        List<FileAndFolderVO> fileAndFolderVO = new ArrayList<>();
-
+        //两个都为空时,返回
         if (foldersList.isEmpty() && fileList.isEmpty()) {
             return new Result(205, "没有查到文件", null);
         } else {
-            for (Folder folders : foldersList) {
-                FileAndFolderVO temp = new FileAndFolderVO();
-                temp.setType("folder");
-                temp.setCategory(null);
-                temp.setName(folders.getFolderName());
-                temp.setFileUUID(folders.getFolderUUID());
-                temp.setParentFileUUID(folders.getParentFolderUUID());
-                temp.setSize(null);
-                temp.setUploader(folders.getUsername());
-                temp.setCreatedTime(folders.getFolderCreateTime());
-                temp.setRelativePath(folders.getFolderRelativePath());
-                fileAndFolderVO.add(temp);
-            }
-            for (FileInfo fileInfo : fileList) {
-                FileAndFolderVO temp = new FileAndFolderVO();
-                temp.setType("file");
-                temp.setName(fileInfo.getFileName());
-                temp.setFileUUID(fileInfo.getFileMD5());
-                temp.setParentFileUUID(fileInfo.getFileParentId());
-                temp.setSize(fileInfo.getFileSize());
-                temp.setUploader(fileInfo.getFileUploader());
-                temp.setCreatedTime(fileInfo.getFileUploadTime());
-                temp.setRelativePath(fileInfo.getFileRelativePath());
-                temp.setFileExtension(fileInfo.getFileExtension());
-                File checkFileType = new File(fileInfo.getFileAbsolutePath() + File.separator + fileInfo.getFileMD5() + "." + fileInfo.getFileExtension());
-                Tika tika = new Tika();
-                String detect = tika.detect(checkFileType);
-                String[] fileType = detect.split("/");
-                temp.setCategory(detect);
-                if (fileType[0].equals("image")) {
-                    temp.setThumbnailURL(thumbnailUrl + fileInfo.getFileMD5() + "." + fileInfo.getFileExtension());
-                    temp.setFullSizeImageURL(imagePathURL + fileInfo.getFileMD5() + "." + fileInfo.getFileExtension());
-                }
-                fileAndFolderVO.add(temp);
-            }
+            //调用封装好的方法,来将File和Folder的都封装到一个List对象中,再返回
+            List<FileAndFolderVO> fileAndFolderVO = sendFileAndFolderDataService.sendFileInfoListAndFolderListData(foldersList, fileList, imagePathURL, thumbnailUrl, request);
+            //最后将数据集合返回给前端
             return new Result(200, "文件列表查询成功", fileAndFolderVO);
         }
     }

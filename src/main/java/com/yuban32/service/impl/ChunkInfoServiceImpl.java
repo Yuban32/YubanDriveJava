@@ -85,17 +85,20 @@ public class ChunkInfoServiceImpl implements ChunkInfoService {
 
     @Override
     public byte[] getChunk(Integer index, Integer chunkSize, String resultFileName, long offset) {
-        File resultFile = new File(resultFileName);
+        //用RandomAccessFile来处理文件
         try (RandomAccessFile randomAccessFile = new RandomAccessFile(resultFileName,"r")){
             //根据偏移量定位分片
             randomAccessFile.seek(offset);
-            //开始读取文件
+            //创建字节数组,存储当前分片数据
             byte[] buffer = new byte[chunkSize];
+            //从指定的偏移量读取指定大小的字节块到缓冲区
             randomAccessFile.read(buffer);
+            //返回读取的分片数据
             return buffer;
         }catch(IOException e){
             e.printStackTrace();;
         }
+        //发生异常就返回null
         return null;
     }
 }

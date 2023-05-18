@@ -62,12 +62,9 @@ mybatis-plus:
       log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
       sql-statement-log: true
 
-# 上传文件的存储路径 项目的根目录下的files文件夹内  实际上在files后还要再拼接上用户名
+# 上传文件的存储路径 项目的根目录下的files文件夹内
 base-file-path:
   file-path: ./files
-  temp-file-path: ./temp_file_path
-  user-upload-file-path: userUpload
-  user-profile-path: userProfile
 server:
   port: 5000
   tomcat:

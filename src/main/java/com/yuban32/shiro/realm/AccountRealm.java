@@ -59,8 +59,10 @@ public class AccountRealm extends AuthorizingRealm {
         log.info("进入授权类");
         //从Shiro获取用户名
         AccountProfile username = (AccountProfile) principalCollection.iterator().next();
+        //创建个简单的授权信息类
         SimpleAuthorizationInfo authorizationInfo = new SimpleAuthorizationInfo();
         User user = userService.getOne(new QueryWrapper<User>().eq("username",username.getUsername()));
+        //鉴权 然后授权
         if (user.getRole().equals(RolesAdmin)){
             authorizationInfo.setRoles(Collections.singleton(RolesAdmin));
         } else if (user.getRole().equals(RolesUser)) {
@@ -70,9 +72,12 @@ public class AccountRealm extends AuthorizingRealm {
     }
     @Override
     protected AuthenticationInfo doGetAuthenticationInfo(AuthenticationToken token) throws AuthenticationException {
-        //获取
+        //身份认证
+        //获取jwt
         JwtToken jwtToken = (JwtToken) token;
+        //获取用户令牌
         Claims claimByToken = jwtUtils.getClaimByToken((String) jwtToken.getPrincipal());
+        //解密获取用户名
         String userName = claimByToken.getSubject();
         User user = userService.getOne(new QueryWrapper<User>().eq("username",userName));
         //非空判断

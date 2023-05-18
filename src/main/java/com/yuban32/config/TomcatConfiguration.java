@@ -17,6 +17,11 @@ import org.springframework.web.util.UrlPathHelper;
 @Configuration
 public class TomcatConfiguration {
 
+    /**
+     * @description 此配置是为了解决用户在上传文件时,文件有特殊字符导致报错的配置 允许tomcat处理特殊字符
+     * @param
+     * @return TomcatServletWebServerFactory
+     **/
     @Bean
     public TomcatServletWebServerFactory webServerFactory() {
         TomcatServletWebServerFactory factory = new TomcatServletWebServerFactory();

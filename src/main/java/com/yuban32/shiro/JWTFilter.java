@@ -40,6 +40,12 @@ public class JWTFilter extends AuthenticatingFilter {
     @Autowired
     BlackListTokenService blackListTokenService;
 
+    /**
+     * @description 第一步执行 处理跨域的预处理操作
+     * @param request
+     * @param response
+     * @return boolean
+     **/
     @Override
     protected boolean preHandle(ServletRequest request,ServletResponse response) throws Exception{
         HttpServletRequest httpServletRequest = WebUtils.toHttp(request);
@@ -55,10 +61,16 @@ public class JWTFilter extends AuthenticatingFilter {
 
         return super.preHandle(request, response);
     }
-
+    /**
+     * @description 第二步执行 判断当前请求是否允许访问
+     * @param request
+     * @param response
+     * @param mappedValue
+     * @return boolean
+     **/
     @Override
     protected boolean isAccessAllowed(ServletRequest request, ServletResponse response, Object mappedValue) {
-
+        //获取jwt token
         HttpServletRequest httpServletRequest = (HttpServletRequest) request;
         String token = httpServletRequest.getHeader("Authorization");
         if(StringUtils.isEmpty(token)){
@@ -67,6 +79,7 @@ public class JWTFilter extends AuthenticatingFilter {
         Claims claim = jwtUtils.getClaimByToken(token);
 
         if(claim != null){
+            //调用查询黑名单方法 当前jwt在黑名单内则不允许访问控制器 直接转到onAccessDenied方法
             String blackListTokenByUsername = blackListTokenService.isBlackListTokenByUsername(claim.getSubject());
             if(token.equals(blackListTokenByUsername)){
                 return false;
@@ -81,7 +94,12 @@ public class JWTFilter extends AuthenticatingFilter {
         }
     }
 
-
+    /**
+     * @description 第三步 执行登录操作,因为每次访问后端都相当于是拿着jwt重新登录
+     * @param request
+     * @param response
+     * @return boolean
+     **/
     @Override
     protected boolean executeLogin(ServletRequest request, ServletResponse response) throws Exception {
 
@@ -90,15 +108,23 @@ public class JWTFilter extends AuthenticatingFilter {
         JwtToken jwtToken = new JwtToken(token);
 
         try{
+            //获取当前访问系统的对象
             Subject subject = this.getSubject(request,response);
+            //Shiro 会委托给 SecurityManager 进行身份认证
             subject.login(jwtToken);
+            //然后调用身份认证成功的方法
             return this.onLoginSuccess(jwtToken,subject,request,response);
         }catch (AuthenticationException e){
             return this.onLoginFailure(jwtToken,e,request,response);
         }
 
     }
-
+    /**
+     * @description 在onAccessDenied中调用
+     * @param servletRequest
+     * @param servletResponse
+     * @return AuthenticationToken
+     **/
     @Override
     protected AuthenticationToken createToken(ServletRequest servletRequest, ServletResponse servletResponse) throws Exception {
         HttpServletRequest request = (HttpServletRequest) servletRequest;
@@ -108,7 +134,12 @@ public class JWTFilter extends AuthenticatingFilter {
         }
         return new JwtToken(jwt);
     }
-
+    /**
+     * @description 在isAccessAllowed返回false时被调用 用于处理拒绝访问的异常情况
+     * @param servletRequest
+     * @param servletResponse
+     * @return boolean
+     **/
     @Override
     protected boolean onAccessDenied(ServletRequest servletRequest, ServletResponse servletResponse) throws Exception {
         HttpServletRequest request = (HttpServletRequest) servletRequest;
@@ -121,10 +152,18 @@ public class JWTFilter extends AuthenticatingFilter {
             if(claims == null || jwtUtils.isTokenExpired(claims.getExpiration())){
                 throw new ExpiredCredentialsException("token已失效,请重新登录");
             }
-
+            //jwt有效的话 返回去执行executeLogin
             return executeLogin(servletRequest,servletResponse);
         }
     }
+    /**
+     * @description 当身份认证失败的时候被调用,用来处理身份认证异常情况
+     * @param token
+     * @param e
+     * @param request
+     * @param response
+     * @return boolean
+     **/
     @Override
     protected boolean onLoginFailure(AuthenticationToken token, AuthenticationException e, ServletRequest request, ServletResponse response) {
         HttpServletResponse httpServletResponse = (HttpServletResponse) response;

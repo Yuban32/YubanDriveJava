@@ -26,6 +26,14 @@ import java.util.Map;
 @Configuration
 public class ShiroConfig {
 
+    /**
+     * 当有请求进入系统时，Shiro的Filter会拦截请求。
+     * 根据ShiroFilterChainDefinition中配置的过滤器链规则，选择相应的过滤器进行处理。
+     * 如果过滤器链规则中包括"jwt"过滤器，则调用JWTFilter进行相关的JWT认证处理，并完成相应的登录操作。
+     * 如果认证通过，则根据权限注解进行相应的权限校验；否则，返回相关的错误信息。
+     * 如果过滤器链规则中还包括其他过滤器，则依次执行相应的过滤器。
+     * 最终，返回相关的结果信息，完成整个请求处理过程。
+     **/
     @Autowired
     JWTFilter jwtFilter;
 
@@ -39,7 +47,7 @@ public class ShiroConfig {
     public SessionManager sessionManager() {
         DefaultWebSessionManager sessionManager = new DefaultWebSessionManager();
 
-        // inject redisSessionDAO
+        // 注入 redisSessionDAO
         sessionManager.setSessionDAO(redisSessionDAO);
         return sessionManager;
     }
@@ -49,20 +57,26 @@ public class ShiroConfig {
                                                      SessionManager sessionManager) {
         DefaultWebSecurityManager securityManager = new DefaultWebSecurityManager(accountRealm);
 
-        //inject sessionManager
+        //注入 sessionManager
         securityManager.setSessionManager(sessionManager);
 
-        // inject redisCacheManager
+        // 注入 redisCacheManager
         redisCacheManager.setExpire(expire);
         securityManager.setCacheManager(redisCacheManager);
         return securityManager;
     }
-
+    /**
+     * @description 拦截规则
+     * @param
+     * @return ShiroFilterChainDefinition
+     **/
     @Bean
     public ShiroFilterChainDefinition shiroFilterChainDefinition() {
         DefaultShiroFilterChainDefinition chainDefinition = new DefaultShiroFilterChainDefinition();
 
         Map<String, String> filterMap = new LinkedHashMap<>();
+        //所有接口都交由jwtFilter来进行处理
+        //"jwt"在下方有定义
         filterMap.put("/**", "jwt");
 //        filterMap.put("/authctest","authc");
 //        filterMap.put("/admin/**","authc");

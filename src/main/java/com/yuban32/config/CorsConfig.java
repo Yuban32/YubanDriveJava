@@ -17,6 +17,7 @@ public class CorsConfig implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
+        //允许跨域
         log.info("加载跨域配置");
         registry.addMapping("/**")
                 .allowedOriginPatterns("*")

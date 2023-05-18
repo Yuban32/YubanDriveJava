@@ -35,8 +35,6 @@ import java.util.List;
 public class FileInfoServiceImpl extends ServiceImpl<FileInfoMapper, FileInfo> implements FileInfoService {
     @Value("${base-file-path.file-path}")
     private String filePath;
-    @Value("${base-file-path.user-upload-file-path}")
-    private String userUploadFilePath;
     @Autowired
     private FileInfoMapper fileInfoMapper;
 
@@ -68,7 +66,9 @@ public class FileInfoServiceImpl extends ServiceImpl<FileInfoMapper, FileInfo> i
     public void createThumbnail(String resultFileName, String username, String md5) {
         //获取文件类型
         String[] split = resultFileName.split("\\.");
-        String type = split[split.length - 1];
+        //获取文件后缀名
+        String fileExtension = split[split.length - 1];
+        //拼接文件路径
         Path thumbnailFolder = Paths.get(filePath + File.separator + "Thumbnail");
 
         File file = new File(resultFileName);
@@ -79,15 +79,20 @@ public class FileInfoServiceImpl extends ServiceImpl<FileInfoMapper, FileInfo> i
             log.info("缩略图路径不存在,新建路径:{}", thumbnailFolder);
             Files.createDirectories(thumbnailFolder);
         }
+
         if (split1[0].equals("image")) {
+            //调用ImageIO库
             BufferedImage img = ImageIO.read(file);
+            //如果图片尺寸大于250*250的话
             if (img.getWidth() > 250 && img.getHeight() > 250) {
+                //将图片裁剪到250*250 并输出到指定文件夹内
                 Thumbnails.of(resultFileName)
                         .size(250, 250)
-                        .toFile(thumbnailFolder + File.separator + "Thumbnail" + md5 + "." + type);
+                        .toFile(thumbnailFolder + File.separator + "Thumbnail" + md5 + "." + fileExtension);
             }else{
+                //如果图片尺寸小于250*250的话 直接复制一份到指定目录下 这么做的目的是配合前端显示图片缩略图
                 Path sourceFile = Paths.get(resultFileName);
-                Path targetFolder = Paths.get(thumbnailFolder + File.separator + "Thumbnail" + md5 + "." + type);
+                Path targetFolder = Paths.get(thumbnailFolder + File.separator + "Thumbnail" + md5 + "." + fileExtension);
                 Files.copy(sourceFile,targetFolder, StandardCopyOption.REPLACE_EXISTING);
             }
 
