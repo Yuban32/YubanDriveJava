@@ -46,14 +46,15 @@ public class AdminUserManagementController {
 
     @RequiresRoles("admin")
     @PostMapping("/edit")
-    public Result userEdit(@Valid @RequestBody AdminUserEditDTO userEditDTO) {
+    public Result userEdit(@Validated @RequestBody AdminUserEditDTO userEditDTO) {
         boolean userStorageEditSuccess = false;
         UpdateWrapper<User> updateWrapper = new UpdateWrapper<>();
         updateWrapper.eq("id",userEditDTO.getId());
         if (!userEditDTO.getUsername().isEmpty()) {
             updateWrapper.set("username", userEditDTO.getUsername());
         }
-        if (!userEditDTO.getPassword().isEmpty()) {
+
+        if (userEditDTO.getPassword()!=null) {
 //            加密加盐
             User getUUID = userService.getOne(new QueryWrapper<User>().eq("id", userEditDTO.getId()));
             String encryptionPassword = new UserControllerUtils().encryptionPassword(getUUID.getUuid(), userEditDTO.getPassword());

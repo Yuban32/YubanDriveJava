@@ -34,7 +34,7 @@ import java.util.List;
 @Slf4j
 @RestController
 @RequestMapping("/fileList")
-public class FIleController {
+public class FileController {
     @Autowired
     private JWTUtils jwtUtils;
     @Autowired
@@ -56,9 +56,6 @@ public class FIleController {
         log.info("查询文件列表");
         //通过请求头获取JWT后解密获取用户名
         String userName = jwtUtils.getClaimByToken(request.getHeader("Authorization")).getSubject();
-        if (parentFolderUUID.equals("root")) {
-            parentFolderUUID = userName;
-        }
         //查询
         List<FileInfo> fileList = fileInfoService.list(new QueryWrapper<FileInfo>().eq("f_uploader", userName).eq("f_parent_id", parentFolderUUID).eq("f_status", 1));
         List<Folder> foldersList = folderService.list(new QueryWrapper<Folder>().eq("username", userName).eq("parent_folder_uuid", parentFolderUUID).eq("folder_status", 1));

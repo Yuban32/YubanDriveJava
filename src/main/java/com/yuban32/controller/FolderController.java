@@ -36,16 +36,14 @@ public class FolderController {
     private JWTUtils jwtUtils;
     @Autowired
     private FolderMapper folderMapper;
+    private static final String ROOT = "root";
     @PostMapping("/create")
-//    @RequiresAuthentication
+    @RequiresAuthentication
     public Result createFolder(
             @RequestParam("folderUUID") String requestFolderUUID,
             @RequestParam("newFolderName") String requestNewFolderName,
             HttpServletRequest request){
         String username = jwtUtils.getClaimByToken(request.getHeader("Authorization")).getSubject();
-        if(requestFolderUUID.equals("root")){
-            requestFolderUUID = username;
-        }
         return folderService.createFolder(requestFolderUUID,requestNewFolderName, username);
     }
 

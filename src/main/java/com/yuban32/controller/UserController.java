@@ -83,6 +83,7 @@ public class UserController {
      **/
     @PostMapping("/login")
     public Result login(@Validated @RequestBody LoginDto loginDto ,HttpServletResponse response){
+        log.info("用户登录");
         UserVO userVO = new UserVO();
         //获取subject对象
         User existsUser = userService.getOne(new QueryWrapper<User>().eq("username", loginDto.getUsername()));
@@ -197,7 +198,7 @@ public class UserController {
         UpdateWrapper<User> updateWrapper = new UpdateWrapper<>();
         //加入条件 根据id来更新
         updateWrapper.eq("id",userEditDTO.getId());
-        if (!userEditDTO.getPassword().isEmpty()){
+        if (userEditDTO.getPassword()!=null){
             //加密加盐
             User getUUID = userService.getOne(new QueryWrapper<User>().eq("id",userEditDTO.getId()));
             String encryptionPassword = new UserControllerUtils().encryptionPassword(getUUID.getUuid(),userEditDTO.getPassword());

@@ -40,6 +40,7 @@ public class BlackListServiceImpl implements BlackListTokenService {
         if (o != null){
             o.replace("\"","");
         }
+        log.info("{}",o);
         return o;
 
     }

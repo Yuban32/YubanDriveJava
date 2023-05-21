@@ -4,12 +4,14 @@ import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.yuban32.entity.FileInfo;
 import com.yuban32.entity.Folder;
+import com.yuban32.entity.User;
 import com.yuban32.entity.UserStorageQuota;
 import com.yuban32.mapper.UserStorageQuotaMapper;
 import com.yuban32.response.Result;
 import com.yuban32.service.ChunkInfoService;
 import com.yuban32.service.FileInfoService;
 import com.yuban32.service.FolderService;
+import com.yuban32.service.UserService;
 import com.yuban32.util.JWTUtils;
 import com.yuban32.util.LocalDateTimeFormatterUtils;
 import com.yuban32.util.StorageUtils;
@@ -47,11 +49,14 @@ public class FileUploadController {
     @Autowired
     private ChunkInfoService chunkInfoService;
     @Autowired
+    private UserService userService;
+    @Autowired
     private UserStorageQuotaMapper userStorageQuotaMapper;
     @Autowired
     private FolderService folderService;
     @Value("${base-file-path.file-path}")
     private String filePath;
+    private static final String ROOT = "root";
 
     @GetMapping("/check")
     @RequiresAuthentication
@@ -65,6 +70,9 @@ public class FileUploadController {
         }
         String root = "root";
         LocalDateTimeFormatterUtils localDateTimeFormatterUtils = new LocalDateTimeFormatterUtils();
+        //根据用户名查询到用户ID 然后通过用户ID查询 因为用户名是随时会改变的
+//        User getUserInfo = userService.getOne(new QueryWrapper<User>().eq("username", userName));
+
         QueryWrapper<FileInfo> fileInfoQueryByFileNameAndParentID = new QueryWrapper<FileInfo>()
                 .eq("f_name", fileName)
                 .eq("f_parent_id", folderUUID)
@@ -90,28 +98,28 @@ public class FileUploadController {
             List<FileInfo> files = fileInfoService.list(fileInfoQueryByFileNameAndParentID);
             log.info("{}",files.size());
             if (files.isEmpty()){
-                FileInfo oneFile = fileInfoService.getOne(new QueryWrapper<FileInfo>().eq("f_md5", md5));
+                List<FileInfo> oneFile = fileInfoService.list(new QueryWrapper<FileInfo>().eq("f_md5", md5));
                 log.info("{}",oneFile);
                 if (folderUUID.equals(root)){
                     List<FileInfo> list = fileInfoService.list(fileInfoQueryByFileNameAndParentID);
                     if (list.isEmpty()){
-                        oneFile.setFileUploader(userName);
-                        oneFile.setFileRelativePath(root);
-                        oneFile.setFileParentId(root);
-                        oneFile.setFileUploadTime(localDateTimeFormatterUtils.getStartDateTime());
-                        fileInfoService.addFile(oneFile);
+                        oneFile.get(oneFile.size()-1).setFileUploader(userName);
+                        oneFile.get(oneFile.size()-1).setFileRelativePath(root);
+                        oneFile.get(oneFile.size()-1).setFileParentId(root);
+                        oneFile.get(oneFile.size()-1).setFileUploadTime(localDateTimeFormatterUtils.getStartDateTime());
+                        fileInfoService.addFile(oneFile.get(oneFile.size()-1));
                         log.info("文件已存在服务器上,但不存在虚拟路径上");
                         return new Result(201,"文件已秒传",data);
                     }else{
                         return new Result(500,"本目录下已有同名文件",null);
                     }
-                }else if (oneFile.getFileRelativePath() != folderUUID) {
+                }else if (oneFile.get(oneFile.size()-1).getFileRelativePath() != folderUUID) {
                     log.info("文件已存在服务器上,但不存在虚拟路径上");
                     Folder folder = folderService.selectFolderByFolderUUID(folderUUID);
-                    oneFile.setFileUploader(userName);
-                    oneFile.setFileRelativePath(folder.getFolderRelativePath());
-                    oneFile.setFileParentId(folderUUID);
-                    fileInfoService.addFile(oneFile);
+                    oneFile.get(oneFile.size()-1).setFileUploader(userName);
+                    oneFile.get(oneFile.size()-1).setFileRelativePath(folder.getFolderRelativePath());
+                    oneFile.get(oneFile.size()-1).setFileParentId(folderUUID);
+                    fileInfoService.addFile(oneFile.get(oneFile.size()-1));
                     return new Result(201,"文件已秒传",data);
                 }
             }else {
@@ -169,13 +177,13 @@ public class FileUploadController {
         if(Objects.equals(index,chunkTotal)){
             FileInfo fileInfo = new FileInfo();
             //判断前端传来的folderUUID是否是root
-            if(!folderUUID.equals("root")){
+            if(!folderUUID.equals(ROOT)){
                 //不是就找父文件夹 然后把文件的相对路径改为父文件夹的相对路径
                 Folder folder = folderService.selectFolderByFolderUUID(folderUUID);
                 fileInfo.setFileRelativePath(folder.getFolderRelativePath());
             }else {
                 //是root就存根目录
-                fileInfo.setFileRelativePath(userName);
+                fileInfo.setFileRelativePath(ROOT);
             }
             LocalDateTimeFormatterUtils localDateTimeFormatterUtils = new LocalDateTimeFormatterUtils();
             File file = new File(resultFileName);
@@ -190,7 +198,7 @@ public class FileUploadController {
             fileInfo.setFileMD5(md5);
             fileInfo.setFileSize(fileSize);
             fileInfo.setFileExtension(type);
-            fileInfo.setFileParentId(userName);
+            fileInfo.setFileParentId(ROOT);
             fileInfo.setFileAbsolutePath(filePath);
             fileInfo.setFileUploader(userName);
             fileInfo.setFileUploadTime(localDateTimeFormatterUtils.getStartDateTime());

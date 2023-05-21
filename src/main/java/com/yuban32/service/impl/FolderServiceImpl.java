@@ -31,6 +31,7 @@ import java.util.UUID;
 public class FolderServiceImpl extends ServiceImpl<FolderMapper,Folder> implements FolderService {
     @Autowired
     private FolderMapper folderMapper;
+    private static final String ROOT = "root";
     @Override
     public Result createFolder(String requestFolderUUID,String requestNewFolderName, String username) {
         String folderPath;
@@ -43,24 +44,27 @@ public class FolderServiceImpl extends ServiceImpl<FolderMapper,Folder> implemen
         log.info("用户 {},开始创建文件夹 {},{}", username, requestFolderUUID, requestNewFolderName);
         String newFolderUUID = String.valueOf(UUID.randomUUID());
         LocalDateTimeFormatterUtils localDateTimeFormatterUtils = new LocalDateTimeFormatterUtils();
-        if (requestFolderUUID.equals(username)) {   //判断是否是username 如果是则代表在根目录创建文件夹
+        if (requestFolderUUID.equals(ROOT)) {   //判断是否是root 如果是则代表在根目录创建文件夹
             List<Folder> isEmpty = folderMapper.selectList(new QueryWrapper<Folder>().eq("parent_folder_uuid", requestFolderUUID).eq("username",username));
             if (isEmpty == null) {
-                folderPath = username + File.separator + newFolderUUID;
-                Folder folder = new Folder(username, folderPath, newFolderUUID, requestNewFolderName, requestFolderUUID,localDateTimeFormatterUtils.getStartDateTime());
+                //当前目录下为空则直接开始创建
+                folderPath = ROOT + File.separator + newFolderUUID;
+                Folder folder = new Folder(ROOT, folderPath, newFolderUUID, requestNewFolderName, requestFolderUUID,localDateTimeFormatterUtils.getStartDateTime());
                 folderMapper.createFolder(folder);
                 return new Result(200,"文件夹创建成功",folder);
             } else {
+                //不为空则开始找是否有同名的文件夹
                 Folder isSameName = folderMapper.selectOne(new QueryWrapper<Folder>().eq("folder_name", requestNewFolderName).eq("parent_folder_uuid",requestFolderUUID).eq("username",username));
                 if (isSameName == null){
-                    folderPath = username + File.separator + newFolderUUID;
+                    //没有同名的文件夹就开始创建文件夹
+                    folderPath = ROOT + File.separator + newFolderUUID;
                     Folder folder = new Folder(username, folderPath, newFolderUUID, requestNewFolderName, requestFolderUUID,localDateTimeFormatterUtils.getStartDateTime());
                     folderMapper.createFolder(folder);
                     return new Result(200,"文件夹创建成功",folder);
                 }
                 return Result.error(500, "当前目录下已有同名文件夹");
             }
-        } else {    //不是username 则代表有父文件夹
+        } else {    //不是root 则代表有父文件夹
             //查询父文件是否存在
             Folder parentFolderIsExists = folderMapper.selectOne(new QueryWrapper<Folder>().eq("folder_uuid",requestFolderUUID).eq("username",username));
             if (parentFolderIsExists != null) {

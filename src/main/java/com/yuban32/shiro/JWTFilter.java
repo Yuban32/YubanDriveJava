@@ -77,10 +77,10 @@ public class JWTFilter extends AuthenticatingFilter {
             return true;
         }
         Claims claim = jwtUtils.getClaimByToken(token);
-
         if(claim != null){
             //调用查询黑名单方法 当前jwt在黑名单内则不允许访问控制器 直接转到onAccessDenied方法
             String blackListTokenByUsername = blackListTokenService.isBlackListTokenByUsername(claim.getSubject());
+            System.out.println(token.equals(blackListTokenByUsername));
             if(token.equals(blackListTokenByUsername)){
                 return false;
             }
@@ -149,7 +149,13 @@ public class JWTFilter extends AuthenticatingFilter {
         }else{
 //            校验jwt
             Claims claims = jwtUtils.getClaimByToken(jwt);
-            if(claims == null || jwtUtils.isTokenExpired(claims.getExpiration())){
+            if(claims != null){
+                //调用查询黑名单方法 当前jwt在黑名单内就抛出一个异常,终止用户访问
+                String blackListTokenByUsername = blackListTokenService.isBlackListTokenByUsername(claims.getSubject());
+                if(jwt.equals(blackListTokenByUsername)){
+                    throw new ExpiredCredentialsException("token已失效,请重新登录");
+                }
+            }else if(claims == null || jwtUtils.isTokenExpired(claims.getExpiration())){
                 throw new ExpiredCredentialsException("token已失效,请重新登录");
             }
             //jwt有效的话 返回去执行executeLogin

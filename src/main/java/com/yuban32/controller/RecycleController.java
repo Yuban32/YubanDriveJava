@@ -1,6 +1,7 @@
 package com.yuban32.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.yuban32.entity.FileInfo;
 import com.yuban32.entity.Folder;
 import com.yuban32.entity.User;
@@ -25,11 +26,8 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-
 /**
  * @author Yuban32
  * @ClassName RecycleController
@@ -143,10 +141,7 @@ public class RecycleController {
                                       @RequestParam("fileName") String fileName,
                                       HttpServletRequest request) {
         String userName = jwtUtils.getClaimByToken(request.getHeader("Authorization")).getSubject();
-        //根据当前文件夹的UUID和文件名还有用户名为条件 将文件移入回收站
-        if (currentFolderUUID.equals("root")) {
-            currentFolderUUID = userName;
-        }
+        //根据当前文件夹的UUID和文件名的为条件 将文件移入回收站
         Boolean isSuccess = fileInfoMapper.removeFileToRecycle(currentFolderUUID, fileName, userName);
         if (isSuccess) {
             return Result.success("文件已移入回收站", null);
@@ -241,15 +236,29 @@ public class RecycleController {
             if (folderExists != null) {
                 //存在 开始判断是否有子文件夹
                 List<FileInfo> childrenFileList = fileInfoService.list(childrenFileListQueryWrapper);
+                //查询子文件在数据库是否有多个文件
+
                 List<Folder> childrenFolderList = folderService.list(childrenFolderListQueryWrapper);
                 //有子文件夹就删除连同子文件夹一块删除
+
                 if (!childrenFolderList.isEmpty()) {
                     folderService.remove(childrenFolderListQueryWrapper);
                 }//有子文件就删除连同子文件一块删除
                 if (!childrenFileList.isEmpty()) {
                     //调用封装好的方法来删除子文件
-                    boolean deleteFile = deleteFile(childrenFileList, true, fileUUID, userName,userInfo.getRole());
-                    if (deleteFile) {
+                    boolean deleteFile = false;
+                    boolean multipleFiles = false;
+                    boolean removeFolder = false;
+                    List<FileInfo> multipleFile = fileInfoService.list(new QueryWrapper<FileInfo>().eq("f_md5", childrenFileList.get(0).getFileMD5()));
+                    if(multipleFile.size()>1){
+                        multipleFiles = fileInfoService.remove(new QueryWrapper<FileInfo>().eq("f_parent_id", fileUUID));
+                        removeFolder = folderService.remove(folderQueryWrapper);
+                    }else {
+                        deleteFile = deleteFile(childrenFileList, true, fileUUID, userName,userInfo.getRole());
+                        removeFolder = folderService.remove(folderQueryWrapper);
+                    }
+
+                    if (deleteFile||multipleFiles||removeFolder) {
                         return new Result(200, "文件彻底删除成功", null);
                     } else {
                         return new Result(205, "文件彻底删除失败", null);
@@ -279,12 +288,18 @@ public class RecycleController {
         String userName = jwtUtils.getClaimByToken(request.getHeader("Authorization")).getSubject();
         Boolean restoreFile = false;
         Boolean restoreFolder = false;
+        UpdateWrapper<Folder> folderUpdateWrapper = new UpdateWrapper<Folder>().eq("parent_folder_uuid", fileUUID);
+        UpdateWrapper<FileInfo> fileUpdateWrapper = new UpdateWrapper<FileInfo>().eq("f_parent_id", fileUUID);
         //根据类型判断
         if (type.equals("file")) {
             restoreFile = fileInfoMapper.restoreFile(fileUUID, userName);
         }
         if (type.equals("folder")) {
             restoreFolder = folderMapper.restoreFolder(fileUUID, userName);
+            folderUpdateWrapper.set("folder_status",1);
+            fileUpdateWrapper.set("f_status",1);
+            folderService.update(folderUpdateWrapper);
+            fileInfoService.update(fileUpdateWrapper);
         }
         if (restoreFile || restoreFolder) {
             return new Result(200, "恢复成功", null);

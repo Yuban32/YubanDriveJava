@@ -12,6 +12,7 @@ import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import java.io.*;
+import java.util.List;
 
 
 /**
@@ -43,9 +44,10 @@ public class MediaController {
     @ResponseBody
     public ResponseEntity<InputStreamResource> streamVideo(@PathVariable("md5") String md5,@RequestHeader(value = "Range",required = false) String range){
         //根据MD5查询文件
-        FileInfo file = fileInfoService.getOne(new QueryWrapper<FileInfo>().eq("f_md5", md5));
+        List<FileInfo> file = fileInfoService.list(new QueryWrapper<FileInfo>().eq("f_md5", md5));
         //拼接完整路经
-        String resultFileName = filePath + File.separator  + md5 + "." + file.getFileExtension();
+        log.info("{}",file);
+        String resultFileName = filePath + File.separator  + md5 + "." + file.get(0).getFileExtension();
         //创建一个File对象
         File fileResource = new File(resultFileName);
         //文件是否存在
@@ -82,7 +84,7 @@ public class MediaController {
         httpHeaders.add("Accept-Ranges","bytes");
         httpHeaders.add("Content-Length", String.valueOf(contentLengtg));   //设置Content-Length头信息
         httpHeaders.add("Access-Control-Allow-Origin","*");
-        httpHeaders.add("Content-Type",file.getFileType());
+        httpHeaders.add("Content-Type",file.get(0).getFileType());
         //允许跨域
         httpHeaders.add("Access-Control-Allow-Credentials", "true");
         return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
@@ -90,7 +92,7 @@ public class MediaController {
         }
         //如果range头无效 则返回整个视频文件
         HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.add("Content-Type",file.getFileType());
+        httpHeaders.add("Content-Type",file.get(0).getFileType());
         httpHeaders.add("Content-Length", String.valueOf(videoLength));
         httpHeaders.add("Accept-Ranges","bytes");
         return ResponseEntity.ok().headers(httpHeaders).body(new InputStreamResource(bufferedInputStream));
