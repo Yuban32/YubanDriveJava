@@ -4,9 +4,9 @@ spring:
     type: com.alibaba.druid.pool.DruidDataSource
     # Mysql数据库驱动
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://43.129.76.216:3306/Yuban_Drive?allowPublicKeyRetrieval=true&useSSL=false
-    username: Yuban_Drive
-    password: 3DDdsB33ZK5WzjA4
+    url: jdbc:mysql://***?allowPublicKeyRetrieval=true&useSSL=false
+    username: ***
+    password: ***
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher
@@ -41,7 +41,7 @@ spring:
 shiro-redis:
   enabled: true
   redis-manager:
-    host: 43.129.76.216:6379
+    host: ***
 
 mybatis-plus:
   global-config:
@@ -82,7 +82,7 @@ yuban32:
   jwt:
 #    jwt有效期为2天
     expire: 172800000
-    secret: ^Z#$UH9%xjGUzEq8Zmd&Z24gDgNurbsemDS
+    secret: ***********
 #logging:
 #  level:
 #    root: WARN
