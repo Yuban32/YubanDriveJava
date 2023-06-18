@@ -4,7 +4,7 @@ spring:
     type: com.alibaba.druid.pool.DruidDataSource
     # Mysql数据库驱动
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://***?allowPublicKeyRetrieval=true&useSSL=false
+    url: jdbc:mysql://localhost?allowPublicKeyRetrieval=true&useSSL=false
     username: ***
     password: ***
   mvc:
@@ -28,13 +28,13 @@ spring:
       allow-unquoted-control-chars: true
 #配置SpringBoot Redis的
   redis:
-    host: 43.129.76.216
+    host: localhost
     port: 6379
   mail:
     host: smtp.mxhichina.com
     port: 25
-    username: YubanDrive@yuban32.com
-    password: URGEX3Yk&WS&7iA
+    username: *****
+    password: *********
 
 
 #配置Shiro-redis插件的
