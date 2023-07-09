@@ -2,7 +2,7 @@
 
 Yuban Drive Web 鱼板云盘Java端  
 此项目为本人的毕设项目  
-前端 https://github.com/Mashiro10032/YubanDriveWeb
+前端地址 [前端](https://github.com/Yuban32/YubanDriveWeb)
 
 用户相关功能
 
